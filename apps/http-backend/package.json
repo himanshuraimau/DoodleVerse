@@ -9,7 +9,9 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "@types/jsonwebtoken": "^9.0.8",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
