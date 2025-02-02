@@ -6,6 +6,9 @@ import { CreateUserSchema } from '@repo/common/types';
 
 const app = express();
 
+
+
+
 app.post('/signup', (req, res) => {
 
     const data = CreateUserSchema.safeParse(req.body);
