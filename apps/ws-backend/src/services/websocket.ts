@@ -1,10 +1,11 @@
 import { WebSocketServer } from "ws";
 import { IncomingMessage } from "http";
-import { WebSocketConnection } from "../types/websocket";
+import { WebSocketConnection, User } from "../types/websocket.type";
 import { checkUser } from "../utils/auth";
 
 export class WebSocketService {
     private wss: WebSocketServer;
+    users: User[] = [];
 
     constructor(port: number) {
         this.wss = new WebSocketServer({ port });
@@ -18,7 +19,6 @@ export class WebSocketService {
 
     private handleConnection(ws: WebSocketConnection, request: IncomingMessage) {
         const url = request.url;
-
         if (!url) {
             return;
         }
@@ -27,20 +27,49 @@ export class WebSocketService {
 
         const queryParam = new URLSearchParams(url.split("?")[1]);
         const userToken = queryParam.get("token");
-
         const userId = checkUser(userToken || "");
-        
+
         if (!userId) {
             console.log("Invalid token");
             ws.close();
             return;
         }
 
+        this.users.push({ ws, rooms: [], userId });
         ws.userId = userId;
 
         ws.on("message", (message) => {
-            console.log(`Received message => ${message}`);
-            ws.send(`Echo: ${message}`);
+            const parsedMessage = JSON.parse(message.toString());
+            this.handleMessage(parsedMessage, userId);
+        });
+    }
+
+    private handleMessage(parsedMessage: any, userId: string) {
+        const user = this.users.find(user => user.userId === userId);
+        if (!user) return;
+
+        switch (parsedMessage.type) {
+            case "join_room":
+                if (!user.rooms.includes(parsedMessage.roomId)) {
+                    user.rooms.push(parsedMessage.roomId);
+                }
+                break;
+            case "leave_room":
+                user.rooms = user.rooms.filter(room => room !== parsedMessage.roomId);
+                break;
+            case "chat":
+                this.broadcastMessage(user, parsedMessage.message);
+                break;
+        }
+    }
+
+    private broadcastMessage(user: User, message: string) {
+        user.rooms.forEach(room => {
+            this.users.forEach(u => {
+                if (u.rooms.includes(room)) {
+                    u.ws.send(JSON.stringify({ type: "chat", message }));
+                }
+            });
         });
     }
 }
