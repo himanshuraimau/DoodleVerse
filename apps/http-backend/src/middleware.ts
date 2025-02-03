@@ -2,18 +2,36 @@ import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "@repo/backend-common/config";
 
-export function middleware(req:Request, res:Response, next:NextFunction){ 
-    const token = req.headers.authorization;
+interface JwtPayload {
+    userId: string;
+}
 
-    if(!token){
-        return res.status(401).send("Unauthorized");
+
+declare global {
+    namespace Express {
+        interface Request {
+            userId: string;
+        }
     }
+}
+
+export function middleware(req: Request, res: Response, next: NextFunction) {
     try {
-        const payload = jwt.verify(token, JWT_SECRET);
-        console.log(payload);
+        const authHeader = req.headers["authorization"];
+        if (!authHeader) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const token = authHeader.startsWith("Bearer ")
+            ? authHeader.slice(7)
+            : authHeader;
+
+        const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+        req.userId = decoded.userId;
         next();
     } catch (error) {
-        return res.status(401).send("Unauthorized");
+        res.status(401).json({
+            message: "Invalid or expired token"
+        });
     }
-
 }

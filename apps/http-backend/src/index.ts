@@ -1,8 +1,8 @@
-import express from 'express';
+import express, { Request } from 'express';
 import { middleware } from './middleware';
 import { JWT_SECRET } from '@repo/backend-common/config';
 import jwt from 'jsonwebtoken';
-import { CreateUserSchema } from '@repo/common/types';
+import { CreateRoomSchema, CreateUserSchema, SigninSchema } from '@repo/common/types';
 import { prismaClient } from '@repo/db/client';
 
 const app = express();
@@ -13,8 +13,8 @@ app.post('/signup', async (req, res) => {
     const parsedData = CreateUserSchema.safeParse(req.body);
 
     if (!parsedData.success) {
-        res.status(411).json({
-            message: "Invalid inputs"
+        res.status(400).json({
+            message: "Invalid input data"
         });
         return;
     }
@@ -33,29 +33,91 @@ app.post('/signup', async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({
-            error: "Something went wrong"
+            error: "Internal server error"
         });
         return;
     }
 });
 
-app.post('/signin', (req, res) => {
+app.post('/signin', async (req, res) => {
 
-    const userId = "123";
+    const parsedData = SigninSchema.safeParse(req.body);
 
-    const token = jwt.sign({
-        userId
-    }, JWT_SECRET);
-    res.json({
-        token
-    });
+    if (!parsedData.success) {
+        res.status(400).json({
+            message: "Invalid input data"
+        });
+        return;
+    }
+
+    try {
+        const user = await prismaClient.user.findFirst({
+            where: {
+                email: parsedData.data.email,
+                password: parsedData.data.password
+            }
+        });
+
+        if (!user) {
+            res.status(401).json({
+                message: "Invalid email or password"
+            });
+            return;
+        }
+
+        const token = jwt.sign({
+           userId: user?.id
+        }, JWT_SECRET);
+
+        res.json({
+            token
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: "Internal server error"
+        });
+        return;
+    }
 });
 
-app.post("/room", middleware as express.RequestHandler, (req, res) => {
-    res.json({
-        roomId: "123"
-    })
-})
+
+
+app.post("/room", middleware as express.RequestHandler, async (req, res) => {
+    const parsedData = CreateRoomSchema.safeParse(req.body);
+
+    if (!parsedData.success) {
+        res.status(400).json({
+            message: "Invalid input data"
+        });
+        return;
+    }
+    const userId = req.userId;
+    if (!userId) {
+        res.status(400).json({
+            message: "User ID is required"
+        });
+        return;
+    }
+    try {
+        const room = await prismaClient.room.create({
+            data: {
+                slug: parsedData.data.name,
+                adminId: userId
+            }
+        });
+        res.json({
+            roomId: room.id
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: "Internal server error"
+        });
+        return;
+    }
+});
+
+app.get
+
 
 app.listen(3001, () => {
     console.log('Server is running on http://localhost:3001');
