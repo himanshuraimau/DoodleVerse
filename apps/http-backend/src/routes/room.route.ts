@@ -8,4 +8,8 @@ router.post('/', authMiddleware, (req: Request, res: Response, next: NextFunctio
     RoomController.createRoom(req, res).catch(next);
 });
 
+router.get('/:roomId/chats', authMiddleware, (req: Request, res: Response, next: NextFunction) => {
+    RoomController.getChats(req, res).catch(next);
+});
+
 export { router as roomRouter };
