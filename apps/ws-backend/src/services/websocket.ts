@@ -2,6 +2,7 @@ import { WebSocketServer } from "ws";
 import { IncomingMessage } from "http";
 import { WebSocketConnection, User } from "../types/websocket.type";
 import { checkUser } from "../utils/auth";
+import { prismaClient } from "@repo/db/client"
 
 export class WebSocketService {
     private wss: WebSocketServer;
@@ -17,7 +18,7 @@ export class WebSocketService {
         console.log(`WebSocket server is running on ws://localhost:${this.wss.options.port}`);
     }
 
-    private handleConnection(ws: WebSocketConnection, request: IncomingMessage) {
+    public handleConnection(ws: WebSocketConnection, request: IncomingMessage) {
         const url = request.url;
         if (!url) {
             return;
@@ -58,12 +59,19 @@ export class WebSocketService {
                 user.rooms = user.rooms.filter(room => room !== parsedMessage.roomId);
                 break;
             case "chat":
-                this.broadcastMessage(user, parsedMessage.message);
+                this.broadcastMessage(user, parsedMessage.message,parsedMessage.roomId);
                 break;
         }
     }
 
-    private broadcastMessage(user: User, message: string) {
+    private async broadcastMessage(user: User, message: string, roomId: string) {
+        await prismaClient.chat.create({
+            data: {
+                message,
+                userId: user.userId,
+                roomId: Number(roomId)
+            }
+        });
         user.rooms.forEach(room => {
             this.users.forEach(u => {
                 if (u.rooms.includes(room)) {
