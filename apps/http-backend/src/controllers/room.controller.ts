@@ -29,6 +29,30 @@ class RoomController {
             return;
         }
     }
+    
+    async getRoom(req: Request, res: Response) {
+        const slug = req.params.slug;
+        if (!slug) {
+            res.status(400).json({ message: "Slug is required" });
+            return;
+        }
+
+        try {
+            const room = await prismaClient.room.findFirst({
+                where: {
+                    slug: slug
+                }
+            });
+            if (!room) {
+                res.status(404).json({ message: "Room not found" });
+                return;
+            }
+            res.json({ room });
+        } catch (error) {
+            res.status(500).json({ error: "Internal server error" });
+            return;
+        }
+    }
 
     async getChats(req: Request, res: Response) {
         const roomId = req.params.roomId;
