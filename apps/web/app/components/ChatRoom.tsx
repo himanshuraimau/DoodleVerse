@@ -1,19 +1,37 @@
-import axios from 'axios'
-import React from 'react'
+import axios from "axios";
+import React, { useEffect, useState } from "react";
 
-async function getChats(roomId:string){
-   const response =  await axios.get(`http://localhost:3001/chats/${roomId}`)
-   return response.data.messages;
+async function getChats(roomId: string) {
+  try {
+    const response = await axios.get(`http://localhost:3001/chats/${roomId}`);
+    return response.data.messages;
+  } catch (error) {
+    console.error("Error fetching chats:", error);
+    return [];
+  }
 }
 
-const ChatRoom = async ({id}:{
-    id: string
-}) => {
-    const messages = await getChats(id);
+const ChatRoom = ({ id }: { id: string }) => {
+  const [messages, setMessages] = useState<{ message: string }[]>([]);
+
+  useEffect(() => {
+    const fetchChats = async () => {
+      const chats = await getChats(id);
+      setMessages(chats);
+    };
+    fetchChats();
+  }, [id]);
 
   return (
-    <div>ChatRoom</div>
-  )
-}
+    <div>
+      <h2>Chat Room</h2>
+      <div>
+        {messages.map((msg, index) => (
+          <div key={index}>{msg.message}</div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
-export default ChatRoom
+export default ChatRoom;
