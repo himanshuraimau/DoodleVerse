@@ -3,33 +3,56 @@
 import { useEffect, useState } from "react";
 import { useSocket } from "../hooks/useSocket";
 
+interface Message {
+  id?: number;
+  message: string;
+  userId?: string;
+  timestamp?: string;
+}
+
+interface WebSocketMessage {
+  type: string;
+  message?: string;
+  roomId: string | number;
+}
+
 export function ChatRoomClient({
   messages,
   id,
 }: {
-  messages: { message: string }[];
+  messages: Message[];
   id: string;
 }) {
-  const [chats, setChats] = useState(messages);
+  const [chats, setChats] = useState<Message[]>(messages);
   const [currentMessage, setCurrentMessage] = useState("");
   const { socket, loading } = useSocket();
 
   useEffect(() => {
-    if (socket && !loading) {
-      socket.send(
-        JSON.stringify({
-          type: "join_room",
-          roomId: id,
-        })
-      );
+    if (!socket || loading) return;
 
-      socket.onmessage = (event) => {
-        const parsedData = JSON.parse(event.data);
-        if (parsedData.type === "chat") {
-          setChats((c) => [...c, { message: parsedData.message }]);
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const parsedData = JSON.parse(event.data) as WebSocketMessage;
+        if (parsedData.type === "chat" && parsedData.message) {
+          setChats((prev) => [...prev, { message: parsedData.message || "" }]);
         }
-      };
-    }
+      } catch (error) {
+        console.error("Error parsing WebSocket message:", error);
+      }
+    };
+
+    socket.send(
+      JSON.stringify({
+        type: "join_room",
+        roomId: id,
+      })
+    );
+
+    socket.addEventListener("message", handleMessage);
+
+    return () => {
+      socket.removeEventListener("message", handleMessage);
+    };
   }, [socket, loading, id]);
 
   return (
