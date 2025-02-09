@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { authService } from '../../../utils/authService';
 import { useAuthStore } from '../../../stores/useAuthStore'
 import Link from 'next/link';
-import { AuthContextType, AuthService } from '../../../types';
+import {  AuthService } from '../../../types';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
