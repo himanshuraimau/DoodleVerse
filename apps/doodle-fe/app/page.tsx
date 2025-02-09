@@ -1,9 +1,9 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { 
-  Paintbrush, 
-  ArrowRight, 
+import {
+  Paintbrush,
+  ArrowRight,
   Github,
   Share2,
   Palette,
@@ -28,7 +28,7 @@ function LandingPage() {
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black px-6">
       {/* Navigation */}
       <nav className={`fixed w-full z-50 transition-all duration-300  ${isScrolled ? 'bg-black/95 backdrop-blur-sm shadow-lg' : ''} py-6`}>
-        <div className="container mx-auto px-6">
+        <div className="container mx-auto ">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="relative group">
@@ -92,7 +92,7 @@ function LandingPage() {
               </span>
             </h1>
             <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-              Transform your ideas into reality with DoodleVerse's collaborative canvas. 
+              Transform your ideas into reality with DoodleVerse's collaborative canvas.
               Draw together in real-time, enhanced by AI features that make creation magical.
             </p>
             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-5">
@@ -112,9 +112,9 @@ function LandingPage() {
           <div className="relative">
             <div className="absolute -inset-4 bg-emerald-500 rounded-3xl blur-lg opacity-10 group-hover:opacity-20 transition"></div>
             <div className="relative">
-              <img 
+              <img
                 src="/api/placeholder/600/400"
-                alt="Collaborative Drawing" 
+                alt="Collaborative Drawing"
                 className="rounded-3xl shadow-2xl w-full object-cover"
               />
               <div className="absolute -bottom-7 -left-7 bg-black/90 backdrop-blur-sm p-5 rounded-xl shadow-lg border border-gray-800">
@@ -147,17 +147,17 @@ function LandingPage() {
             </span>
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
-            <FeatureCard 
+            <FeatureCard
               icon={<Share2 className="h-9 w-9 text-emerald-400" />}
               title="Real-time Collaboration"
               description="Draw and design together with your team in real-time, no matter where they are."
             />
-            <FeatureCard 
+            <FeatureCard
               icon={<Brain className="h-9 w-9 text-emerald-400" />}
               title="AI Enhancement"
               description="Let AI help perfect your sketches and suggest improvements as you draw."
             />
-            <FeatureCard 
+            <FeatureCard
               icon={<Palette className="h-9 w-9 text-emerald-400" />}
               title="Infinite Canvas"
               description="Unlimited space to bring your ideas to life with our infinite canvas technology."

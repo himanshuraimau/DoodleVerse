@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Paintbrush, LogIn, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 
 interface AuthFormProps {
     mode: 'signin' | 'signup';
@@ -20,24 +21,30 @@ export function AuthForm({ mode }: AuthFormProps) {
         e.preventDefault();
 
         const endpoint = mode === 'signin' ? 'http://localhost:3001/auth/signin' : 'http://localhost:3001/auth/signup';
-        const method = 'POST';
-        const headers = { 'Content-Type': 'application/json' };
-        const body = JSON.stringify(formData);
 
         console.log(`${mode}:`, formData);
 
-        const res = await fetch(endpoint, { method, headers, body });
+        try {
+            const res = await axios({
+                method: 'POST',
+                url: endpoint,
+                headers: { 'Content-Type': 'application/json' },
+                data: formData
+            });
 
-        if (res.ok) {
-            if (mode === 'signin') {
-                const { token } = await res.json();
-                localStorage.setItem('token', token);
-                router.push('/dashboard');
+            if (res.status === 200) {
+                if (mode === 'signin') {
+                    const { token } = res.data;
+                    localStorage.setItem('token', token);
+                    router.push('/dashboard');
+                } else {
+                    router.push('/signin');
+                }
             } else {
-                router.push('/signin');
+                console.error(`${mode} failed`);
             }
-        } else {
-            console.error(`${mode} failed`);
+        } catch (error) {
+            console.error(`${mode} error:`, error);
         }
     };
 
