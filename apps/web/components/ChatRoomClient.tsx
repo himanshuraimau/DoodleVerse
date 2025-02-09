@@ -2,27 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useSocket } from "../hooks/useSocket";
+import { Message, WebSocketMessage, ChatRoomClientProps } from "../types";
 
-interface Message {
-  id?: number;
-  message: string;
-  userId?: string;
-  timestamp?: string;
-}
-
-interface WebSocketMessage {
-  type: string;
-  message?: string;
-  roomId: string | number;
-}
-
-export function ChatRoomClient({
-  messages,
-  id,
-}: {
-  messages: Message[];
-  id: string;
-}) {
+export function ChatRoomClient({ messages, id }: ChatRoomClientProps) {
   const [chats, setChats] = useState<Message[]>(messages);
   const [currentMessage, setCurrentMessage] = useState("");
   const { socket, loading } = useSocket();

@@ -2,20 +2,21 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '../../../utils/authService';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuthStore } from '../../../stores/useAuthStore'
 import Link from 'next/link';
+import { AuthContextType, AuthService } from '../../../types';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
-  const { login } = useAuth();
+  const { isAuthenticated, login, logout } = useAuthStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await authService.signin(email, password);
+      const response = await (authService as AuthService).signin(email, password);
       login(response.token);
       router.push('/');
     } catch (err: any) {

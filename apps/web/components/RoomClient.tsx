@@ -1,11 +1,7 @@
 "use client";
 import { useState } from "react";
 import { ChatRoomClient } from "./ChatRoomClient";
-
-interface Room {
-  id: number;
-  slug: string;
-}
+import { Room } from "../types";
 
 export function RoomClient({ initialRoom }: { initialRoom: Room }) {
   const [room] = useState<Room>(initialRoom);

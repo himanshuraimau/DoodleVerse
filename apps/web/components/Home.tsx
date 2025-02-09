@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
-import { useAuth } from "../context/AuthContext";
+import { useAuthStore } from '../stores/useAuthStore'
+import { AuthContextType } from "../types";
 
 const Home = () => {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout } = useAuthStore()
 
   const handleLogout = async () => {
     try {

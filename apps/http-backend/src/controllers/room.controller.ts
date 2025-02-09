@@ -23,7 +23,7 @@ class RoomController {
                     adminId: userId
                 }
             });
-            return res.json({ roomId: room.id });
+            return res.json({ room });
         } catch (error) {
             res.status(500).json({ error: "Internal server error" });
             return;

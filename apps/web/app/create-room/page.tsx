@@ -2,27 +2,40 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { CreateRoomResponse, CreateRoomRequest } from "../../types";
+import { useRoomStore } from "../../stores/useRoomStore";
 
 export default function CreateRoom() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const router = useRouter();
+  const { currentRoom, setCurrentRoom } = useRoomStore();
 
   const handleCreateRoom = async () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.post(
         "http://localhost:3001/room",
-        { name },
+        { name } as CreateRoomRequest,
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-      router.push(`/room/${response.data.roomId}`);
+      setCurrentRoom(response.data.room);
+      console.log(response.data.room);
+      setSuccess(true);
+      setError("");
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to create room");
+    }
+  };
+
+  const handleJoinRoom = () => {
+    if (currentRoom?.id) {
+      router.push(`/room/${currentRoom.id}`);
     }
   };
 
@@ -31,6 +44,19 @@ export default function CreateRoom() {
       <div className="w-full max-w-md p-6 space-y-6">
         <h1 className="text-3xl font-bold text-center">Create a Room</h1>
         {error && <div className="text-red-500 text-center">{error}</div>}
+        {success && (
+          <div className="space-y-4">
+            <div className="text-green-500 text-center">
+              Room created successfully!
+            </div>
+            <button
+              className="w-full p-3 bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
+              onClick={handleJoinRoom}
+            >
+              Join Room
+            </button>
+          </div>
+        )}
         <div className="space-y-4">
           <input
             type="text"
@@ -44,6 +70,12 @@ export default function CreateRoom() {
             onClick={handleCreateRoom}
           >
             Create Room
+          </button>
+          <button
+            className="w-full p-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+            onClick={() => router.push('/')}
+          >
+            Back to Home
           </button>
         </div>
       </div>

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '../../../utils/authService';
 import Link from 'next/link';
+import { AuthService } from '../../../types';
 
 export default function SignUp() {
   const [name, setName] = useState('');
@@ -14,7 +15,7 @@ export default function SignUp() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await authService.signup(name, email, password);
+      await (authService as AuthService).signup(name, email, password);
       router.push('/signin');
     } catch (err: any) {
       setError(err.response?.data?.message || 'An error occurred');

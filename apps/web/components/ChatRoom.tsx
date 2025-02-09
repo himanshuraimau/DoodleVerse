@@ -1,7 +1,8 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
+import { Message } from "../types";
 
-async function getChats(roomId: string) {
+async function getChats(roomId: string): Promise<Message[]> {
   try {
     const response = await axios.get(`http://localhost:3001/chats/${roomId}`);
     return response.data.messages;
@@ -12,7 +13,7 @@ async function getChats(roomId: string) {
 }
 
 const ChatRoom = ({ id }: { id: string }) => {
-  const [messages, setMessages] = useState<{ message: string }[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
 
   useEffect(() => {
     const fetchChats = async () => {

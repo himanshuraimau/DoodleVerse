@@ -1,12 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-
-interface Message {
-  id: number;
-  message: string;
-  userId: string;
-}
+import { Message } from "../types";
 
 export default function Chat({ roomId }: { roomId: number }) {
   const [messages, setMessages] = useState<Message[]>([]);
