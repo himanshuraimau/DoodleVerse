@@ -1,14 +1,5 @@
 import { create } from 'zustand'
-
-interface Room {
-  id: string;
-  slug: string;
-}
-
-interface RoomStore {
-  currentRoom: Room | null;
-  setCurrentRoom: (room: Room | null) => void;
-}
+import { RoomStore } from '../types'
 
 export const useRoomStore = create<RoomStore>((set) => ({
   currentRoom: null,

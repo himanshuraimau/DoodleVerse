@@ -65,19 +65,37 @@ export class WebSocketService {
     }
 
     private async broadcastMessage(user: User, message: string, roomId: string) {
-        await prismaClient.chat.create({
-            data: {
-                message,
-                userId: user.userId,
-                roomId: Number(roomId)
-            }
-        });
-        user.rooms.forEach(room => {
-            this.users.forEach(u => {
-                if (u.rooms.includes(room)) {
-                    u.ws.send(JSON.stringify({ type: "chat", message }));
+        try {
+            const chatMessage = await prismaClient.chat.create({
+                data: {
+                    message,
+                    userId: user.userId,
+                    roomId: Number(roomId)
                 }
             });
-        });
+
+            // Prepare complete message data with proper date handling
+            const messageToSend = {
+                type: "chat",
+                id: chatMessage.id,
+                message: message,
+                userId: user.userId,
+                roomId: Number(roomId),
+                created: chatMessage.createdAt
+            };
+
+            // Send to all users in the room including sender
+            const usersInRoom = this.users.filter(u => u.rooms.includes(roomId));
+            usersInRoom.forEach(u => {
+                if (u.ws.readyState === u.ws.OPEN) {
+                    u.ws.send(JSON.stringify({
+                        ...messageToSend,
+                        isCurrentUser: u.userId === user.userId
+                    }));
+                }
+            });
+        } catch (error) {
+            console.error("Error broadcasting message:", error);
+        }
     }
 }

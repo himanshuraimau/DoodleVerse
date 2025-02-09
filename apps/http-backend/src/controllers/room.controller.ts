@@ -67,7 +67,7 @@ class RoomController {
                     roomId: Number(roomId)
                 },
                 orderBy:{
-                    id: 'desc'
+                    id: 'asc'
                 },
                 take:50
             });

@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link";
 import { useAuthStore } from '../stores/useAuthStore'
-import { AuthContextType } from "../types";
 
 const Home = () => {
   const { isAuthenticated, logout } = useAuthStore()
