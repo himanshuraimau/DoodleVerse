@@ -4,21 +4,11 @@ import { WebSocketConnection, User } from "../types/websocket.type";
 import { checkUser } from "../utils/auth";
 import { prismaClient } from "@repo/db/client"
 
-export class WebSocketService {
-    private wss: WebSocketServer;
-    users: User[] = [];
+export function startWebSocketServer(port: number) {
+    const wss = new WebSocketServer({ port });
+    const users: User[] = [];
 
-    constructor(port: number) {
-        this.wss = new WebSocketServer({ port });
-        this.init();
-    }
-
-    private init() {
-        this.wss.on("connection", this.handleConnection.bind(this));
-        console.log(`WebSocket server is running on ws://localhost:${this.wss.options.port}`);
-    }
-
-    public handleConnection(ws: WebSocketConnection, request: IncomingMessage) {
+    function handleConnection(ws: WebSocketConnection, request: IncomingMessage) {
         const url = request.url;
         if (!url) {
             return;
@@ -36,17 +26,18 @@ export class WebSocketService {
             return;
         }
 
-        this.users.push({ ws, rooms: [], userId });
+        users.push({ ws, rooms: [], userId });
         ws.userId = userId;
 
         ws.on("message", (message) => {
+            console.log("Received message:", message.toString());
             const parsedMessage = JSON.parse(message.toString());
-            this.handleMessage(parsedMessage, userId);
+            handleMessage(parsedMessage, userId);
         });
     }
 
-    private handleMessage(parsedMessage: any, userId: string) {
-        const user = this.users.find(user => user.userId === userId);
+    function handleMessage(parsedMessage: any, userId: string) {
+        const user = users.find(u => u.userId === userId);
         if (!user) return;
 
         switch (parsedMessage.type) {
@@ -59,12 +50,12 @@ export class WebSocketService {
                 user.rooms = user.rooms.filter(room => room !== parsedMessage.roomId);
                 break;
             case "chat":
-                this.broadcastMessage(user, parsedMessage.message,parsedMessage.roomId);
+                broadcastMessage(user, parsedMessage.message, parsedMessage.roomId);
                 break;
         }
     }
 
-    private async broadcastMessage(user: User, message: string, roomId: string) {
+    async function broadcastMessage(user: User, message: string, roomId: string) {
         try {
             const chatMessage = await prismaClient.chat.create({
                 data: {
@@ -85,7 +76,7 @@ export class WebSocketService {
             };
 
             // Send to all users in the room including sender
-            const usersInRoom = this.users.filter(u => u.rooms.includes(roomId));
+            const usersInRoom = users.filter(u => u.rooms.includes(roomId));
             usersInRoom.forEach(u => {
                 if (u.ws.readyState === u.ws.OPEN) {
                     u.ws.send(JSON.stringify({
@@ -98,4 +89,7 @@ export class WebSocketService {
             console.error("Error broadcasting message:", error);
         }
     }
+
+    wss.on("connection", handleConnection);
+    console.log(`WebSocket server is running on ws://localhost:${wss.options.port}`);
 }

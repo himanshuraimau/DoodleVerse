@@ -52,13 +52,13 @@ export default function Chat({ sendMessage, exitRoom, isLoading, error }: ChatPr
                 <p className="break-words">{message.message}</p>
                 <span className="text-xs text-gray-500 ml-2">
                  
-                  {new Intl.DateTimeFormat('en-IN', {
+                    {message.createdAt ? new Intl.DateTimeFormat('en-IN', {
                     hour: '2-digit',
                     minute: '2-digit',
                     second: '2-digit',
                     timeZone: 'Asia/Kolkata',
                     hour12: true
-                  }).format(new Date(message.createdAt))}
+                    }).format(new Date(message.createdAt)) : null}
                 </span>
               </div>
             </div>

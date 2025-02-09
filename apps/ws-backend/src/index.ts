@@ -1,4 +1,4 @@
-import { WebSocketService } from "./services/websocket";
+import { startWebSocketServer } from "./services/websocket";
 
-new WebSocketService(8080);
+startWebSocketServer(8080);
 
