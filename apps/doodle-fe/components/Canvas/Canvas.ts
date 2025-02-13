@@ -1,164 +1,125 @@
+import { HTTP_URL } from '@/config';
+import axios from 'axios';
+
 type Shape = {
     type: 'rect';
     x: number;
     y: number;
     width: number;
     height: number;
-} | {
-    type: 'circle';
-    centerX: number;
-    centerY: number;
-    radius: number;
-} | {
-    type: 'line';
-    x1: number;
-    y1: number;
-    x2: number;
-    y2: number;
 }
 
-class CanvasManager {
-    private ctx: CanvasRenderingContext2D;
-    private canvas: HTMLCanvasElement;
-    private existingShapes: Shape[] = [];
-    private isDrawing = false;
-    private startX = 0;
-    private startY = 0;
-    private mouseDownHandler: (e: MouseEvent) => void = () => {};
-    private mouseUpHandler: (e: MouseEvent) => void = () => {};
-    private mouseMoveHandler: (e: MouseEvent) => void = () => {};
-    private static shapes: Shape[] = []; // Add static shapes array to persist between instances
+// Store shapes globally
+let shapes: Shape[] = [];
 
-    constructor(canvas: HTMLCanvasElement) {
-        this.canvas = canvas;
-        const context = canvas.getContext('2d');
-        if (!context) throw new Error('Could not get canvas context');
-        this.ctx = context;
-        this.existingShapes = CanvasManager.shapes; // Use static shapes
-        this.initializeCanvas();
-        this.redrawShapes(); // Redraw existing shapes on initialization
-    }
+function initializeCanvas(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "white";
+}
 
-    private initializeCanvas() {
-        this.ctx.fillStyle = "black";
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        this.ctx.strokeStyle = "white";
-    }
+function clearCanvas(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
 
-    private clearCanvas() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.ctx.fillStyle = "black";
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    }
+function drawShape(ctx: CanvasRenderingContext2D, shape: Shape) {
+    ctx.strokeStyle = "rgba(255, 255, 255, 1)";
+    ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+}
 
-    private redrawShapes() {
-        this.existingShapes.forEach(shape => {
-            this.drawShape(shape);
-        });
-    }
+function redrawShapes(ctx: CanvasRenderingContext2D) {
+    shapes.forEach(shape => drawShape(ctx, shape));
+}
 
-    private drawShape(shape: Shape) {
-        this.ctx.strokeStyle = "rgba(255, 255, 255, 1)";
-        switch (shape.type) {
-            case 'rect':
-                this.ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
-                break;
-            case 'circle':
-                this.ctx.beginPath();
-                this.ctx.arc(shape.centerX, shape.centerY, shape.radius, 0, 2 * Math.PI);
-                this.ctx.stroke();
-                break;
-            case 'line':
-                this.ctx.beginPath();
-                this.ctx.moveTo(shape.x1, shape.y1);
-                this.ctx.lineTo(shape.x2, shape.y2);
-                this.ctx.stroke();
-                break;
+function createShape(startX: number, startY: number, currentX: number, currentY: number): Shape {
+    return {
+        type: 'rect',
+        x: startX,
+        y: startY,
+        width: currentX - startX,
+        height: currentY - startY
+    };
+}
+
+export async function initCanvas(canvas: HTMLCanvasElement, roomId: string,socket: WebSocket) {
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Could not get canvas context');
+
+    socket.onmessage = (event: any) => {
+        const message = JSON.parse(event.data);
+        if (message.type === 'chat') {
+            const parsedShape = JSON.parse(message.message);
+            shapes.push(parsedShape);
+            redrawShapes(context);
         }
     }
 
-    public initDraw(shapeType: Shape['type']) {
-        this.mouseDownHandler = (e) => {
-            this.isDrawing = true;
-            this.startX = e.clientX;
-            this.startY = e.clientY;
-        };
+    let isDrawing = false;
+    let startX = 0;
+    let startY = 0;
 
-        this.mouseUpHandler = (e) => {
-            if (!this.isDrawing) return;
-            const newShape = this.createShape(shapeType, e);
-            if (newShape) {
-                this.existingShapes.push(newShape);
-                CanvasManager.shapes = this.existingShapes; // Update static shapes
-            }
-            this.isDrawing = false;
-        };
-
-        this.mouseMoveHandler = (e) => {
-            if (!this.isDrawing) return;
-            this.clearCanvas();
-            this.redrawShapes();
-            const tempShape = this.createShape(shapeType, e);
-            if (tempShape) {
-                this.drawShape(tempShape);
-            }
-        };
-
-        this.canvas.addEventListener("mousedown", this.mouseDownHandler);
-        this.canvas.addEventListener("mouseup", this.mouseUpHandler);
-        this.canvas.addEventListener("mousemove", this.mouseMoveHandler);
+    // Cleanup previous listeners if they exist
+    const oldHandlers = (canvas as any)._handlers;
+    if (oldHandlers) {
+        canvas.removeEventListener("mousedown", oldHandlers.mouseDown);
+        canvas.removeEventListener("mouseup", oldHandlers.mouseUp);
+        canvas.removeEventListener("mousemove", oldHandlers.mouseMove);
     }
 
-    public cleanup() {
-        this.canvas.removeEventListener("mousedown", this.mouseDownHandler);
-        this.canvas.removeEventListener("mouseup", this.mouseUpHandler);
-        this.canvas.removeEventListener("mousemove", this.mouseMoveHandler);
-    }
+    initializeCanvas(context, canvas);
+    redrawShapes(context);
 
-    private createShape(type: Shape['type'], e: MouseEvent): Shape | null {
-        switch (type) {
-            case 'rect':
-                return {
-                    type: 'rect',
-                    x: this.startX,
-                    y: this.startY,
-                    width: e.clientX - this.startX,
-                    height: e.clientY - this.startY
-                };
-            case 'circle':
-                const radius = Math.sqrt(
-                    Math.pow(e.clientX - this.startX, 2) + 
-                    Math.pow(e.clientY - this.startY, 2)
-                );
-                return {
-                    type: 'circle',
-                    centerX: this.startX,
-                    centerY: this.startY,
-                    radius
-                };
-            case 'line':
-                return {
-                    type: 'line',
-                    x1: this.startX,
-                    y1: this.startY,
-                    x2: e.clientX,
-                    y2: e.clientY
-                };
-            default:
-                return null;
+    const mouseDownHandler = (e: MouseEvent) => {
+        isDrawing = true;
+        startX = e.clientX;
+        startY = e.clientY;
+    };
+
+    const mouseUpHandler = (e: MouseEvent) => {
+        if (!isDrawing) return;
+        const newShape = createShape(startX, startY, e.clientX, e.clientY);
+        shapes.push(newShape);
+        // Send the new shape to the WebSocket
+        socket.send(JSON.stringify({
+            type: 'chat',
+            message: JSON.stringify(newShape),
+            roomId: roomId 
+        }));
+        isDrawing = false;
+    };
+
+    const mouseMoveHandler = (e: MouseEvent) => {
+        if (!isDrawing) return;
+        clearCanvas(context, canvas);
+        redrawShapes(context);
+        const tempShape = createShape(startX, startY, e.clientX, e.clientY);
+        drawShape(context, tempShape);
+    };
+
+    canvas.addEventListener("mousedown", mouseDownHandler);
+    canvas.addEventListener("mouseup", mouseUpHandler);
+    canvas.addEventListener("mousemove", mouseMoveHandler);
+
+    // Store handlers for cleanup
+    (canvas as any)._handlers = {
+        mouseDown: mouseDownHandler,
+        mouseUp: mouseUpHandler,
+        mouseMove: mouseMoveHandler
+    };
+
+    return {
+        cleanup: () => {
+            canvas.removeEventListener("mousedown", mouseDownHandler);
+            canvas.removeEventListener("mouseup", mouseUpHandler);
+            canvas.removeEventListener("mousemove", mouseMoveHandler);
         }
-    }
+    };
 }
 
-export function initCanvas(canvas: HTMLCanvasElement, shapeType: Shape['type']) {
-    // Cleanup any existing instance
-    const oldManager = (canvas as any)._manager;
-    if (oldManager) {
-        oldManager.cleanup();
-    }
-
-    const manager = new CanvasManager(canvas);
-    manager.initDraw(shapeType);
-    (canvas as any)._manager = manager;
-    return manager;
+async function getExistingShapes(roomId: string) {
+    const res = await axios.get(`${HTTP_URL}/chats/${roomId}`);
+    const messages = res.data.messages;
+    return messages.map((x: { message: string }) => JSON.parse(x.message));
 }
