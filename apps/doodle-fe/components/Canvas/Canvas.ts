@@ -1,16 +1,14 @@
-import { HTTP_URL } from '@/config';
-import axios from 'axios';
+import { HTTP_URL } from "@/config";
+import axios from "axios"
 
-type Shape = {
-    type: 'rect';
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-}
-
-// Store shapes globally
-let shapes: Shape[] = [];
+type Shape =
+    {
+        type: 'rect';
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    }
 
 function initializeCanvas(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
     ctx.fillStyle = "black";
@@ -29,7 +27,7 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape) {
     ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
 }
 
-function redrawShapes(ctx: CanvasRenderingContext2D) {
+function redrawShapes(ctx: CanvasRenderingContext2D, shapes: Shape[]) {
     shapes.forEach(shape => drawShape(ctx, shape));
 }
 
@@ -47,12 +45,16 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Could not get canvas context');
 
+// Store shapes locally
+let shapes: Shape[] = [];
+shapes = await getExistingShapes(roomId,token);
+
     socket.onmessage = (event: any) => {
         const message = JSON.parse(event.data);
         if (message.type === 'chat') {
             const parsedShape = JSON.parse(message.message);
             shapes.push(parsedShape);
-            redrawShapes(context);
+            redrawShapes(context,shapes);
         }
     }
 
@@ -69,7 +71,7 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
     }
 
     initializeCanvas(context, canvas);
-    redrawShapes(context);
+    redrawShapes(context,shapes);
 
     const mouseDownHandler = (e: MouseEvent) => {
         isDrawing = true;
@@ -88,12 +90,13 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
             roomId: roomId,
         }));
         isDrawing = false;
+        redrawShapes(context,shapes);
     };
 
     const mouseMoveHandler = (e: MouseEvent) => {
         if (!isDrawing) return;
         clearCanvas(context, canvas);
-        redrawShapes(context);
+        redrawShapes(context,shapes);
         const tempShape = createShape(startX, startY, e.clientX, e.clientY);
         drawShape(context, tempShape);
     };
@@ -118,8 +121,12 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
     };
 }
 
-async function getExistingShapes(roomId: string) {
-    const res = await axios.get(`${HTTP_URL}/chats/${roomId}`);
+async function getExistingShapes(roomId: string,token: string) {
+    const res = await axios.get(`${HTTP_URL}/room/${roomId}/chats`,{
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
     const messages = res.data.messages;
     return messages.map((x: { message: string }) => JSON.parse(x.message));
 }

@@ -11,10 +11,12 @@ export function RoomCanvas({ roomId }: { roomId: string }) {
 
         if (!storedToken) {
             console.error("No token found in local storage");
-            return; // Or redirect to login page
+            return; 
         }
 
         setToken(storedToken);
+         
+        
 
         const ws = new WebSocket(`${WS_URL}?token=${storedToken}`);
 
@@ -26,7 +28,7 @@ export function RoomCanvas({ roomId }: { roomId: string }) {
                 roomId: roomId
             }));
         };
-
+        
         ws.onclose = () => {
             console.log("WebSocket connection closed");
         };
