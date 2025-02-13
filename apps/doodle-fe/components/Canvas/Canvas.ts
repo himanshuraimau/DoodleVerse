@@ -41,22 +41,46 @@ function createShape(startX: number, startY: number, currentX: number, currentY:
     };
 }
 
+const MAX_RETRY_ATTEMPTS = 5; // Increased from 3
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+const MAX_RETRY_DELAY = 10000; // 10 seconds
+const CONNECTION_TIMEOUT = 15000; // 15 seconds
+
 export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket, token: string) {
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Could not get canvas context');
 
-// Store shapes locally
-let shapes: Shape[] = [];
-shapes = await getExistingShapes(roomId,token);
+    let shapes: Shape[] = [];
+
+    try {
+        // Initialize shapes from existing data
+        shapes = await getExistingShapes(roomId, token);
+    } catch (error) {
+        console.error('Failed to initialize canvas:', error);
+        throw error;
+    }
 
     socket.onmessage = (event: any) => {
-        const message = JSON.parse(event.data);
-        if (message.type === 'chat') {
-            const parsedShape = JSON.parse(message.message);
-            shapes.push(parsedShape);
-            redrawShapes(context,shapes);
+        try {
+            const message = JSON.parse(event.data);
+            if (message.type === 'chat') {
+                const parsedShape = JSON.parse(message.message);
+                // Avoid duplicating shapes from our own messages
+                const shapeExists = shapes.some(shape => 
+                    shape.x === parsedShape.x && 
+                    shape.y === parsedShape.y && 
+                    shape.width === parsedShape.width && 
+                    shape.height === parsedShape.height
+                );
+                if (!shapeExists) {
+                    shapes.push(parsedShape);
+                    redrawShapes(context, shapes);
+                }
+            }
+        } catch (error) {
+            console.error('Error processing WebSocket message:', error);
         }
-    }
+    };
 
     let isDrawing = false;
     let startX = 0;
@@ -71,7 +95,7 @@ shapes = await getExistingShapes(roomId,token);
     }
 
     initializeCanvas(context, canvas);
-    redrawShapes(context,shapes);
+    redrawShapes(context, shapes);
 
     const mouseDownHandler = (e: MouseEvent) => {
         isDrawing = true;
@@ -82,21 +106,31 @@ shapes = await getExistingShapes(roomId,token);
     const mouseUpHandler = (e: MouseEvent) => {
         if (!isDrawing) return;
         const newShape = createShape(startX, startY, e.clientX, e.clientY);
-        shapes.push(newShape);
-        // Send the new shape to the WebSocket
-        socket.send(JSON.stringify({
-            type: 'chat',
-            message: JSON.stringify(newShape),
-            roomId: roomId,
-        }));
+        
+        if (socket.readyState === WebSocket.OPEN) {
+            try {
+                socket.send(JSON.stringify({
+                    type: 'chat',
+                    message: JSON.stringify(newShape),
+                    roomId: roomId,
+                }));
+                shapes.push(newShape);
+            } catch (error) {
+                console.error('Error sending shape through WebSocket:', error);
+            }
+        } else {
+            console.warn('WebSocket not ready');
+        }
+        
         isDrawing = false;
-        redrawShapes(context,shapes);
+        clearCanvas(context, canvas);
+        redrawShapes(context, shapes);
     };
 
     const mouseMoveHandler = (e: MouseEvent) => {
         if (!isDrawing) return;
         clearCanvas(context, canvas);
-        redrawShapes(context,shapes);
+        redrawShapes(context, shapes);
         const tempShape = createShape(startX, startY, e.clientX, e.clientY);
         drawShape(context, tempShape);
     };
@@ -112,17 +146,22 @@ shapes = await getExistingShapes(roomId,token);
         mouseMove: mouseMoveHandler
     };
 
+    // Enhanced cleanup function
     return {
         cleanup: () => {
             canvas.removeEventListener("mousedown", mouseDownHandler);
             canvas.removeEventListener("mouseup", mouseUpHandler);
             canvas.removeEventListener("mousemove", mouseMoveHandler);
-        }
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.close();
+            }
+        },
+        isConnected: () => socket.readyState === WebSocket.OPEN
     };
 }
 
-async function getExistingShapes(roomId: string,token: string) {
-    const res = await axios.get(`${HTTP_URL}/room/${roomId}/chats`,{
+async function getExistingShapes(roomId: string, token: string) {
+    const res = await axios.get(`${HTTP_URL}/room/${roomId}/chats`, {
         headers: {
             Authorization: `Bearer ${token}`
         }
