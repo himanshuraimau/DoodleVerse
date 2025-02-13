@@ -43,7 +43,7 @@ function createShape(startX: number, startY: number, currentX: number, currentY:
     };
 }
 
-export async function initCanvas(canvas: HTMLCanvasElement, roomId: string,socket: WebSocket) {
+export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket, token: string) {
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Could not get canvas context');
 
@@ -85,7 +85,7 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string,socke
         socket.send(JSON.stringify({
             type: 'chat',
             message: JSON.stringify(newShape),
-            roomId: roomId 
+            roomId: roomId,
         }));
         isDrawing = false;
     };

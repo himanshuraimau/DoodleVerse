@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { initCanvas } from '@/components/Canvas/Canvas';
 
-export function CanvasPage({ roomId, socket }: { roomId: string, socket: WebSocket }) {
+export function CanvasPage({ roomId, socket, token }: { roomId: string, socket: WebSocket, token: string }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
@@ -13,7 +13,7 @@ export function CanvasPage({ roomId, socket }: { roomId: string, socket: WebSock
             if (!ctx) return;
 
             // Clear previous event listeners by creating new canvas instance
-            initCanvas(canvas, roomId,socket);
+            initCanvas(canvas, roomId,socket, token);
         }
     }, [roomId]);
 
