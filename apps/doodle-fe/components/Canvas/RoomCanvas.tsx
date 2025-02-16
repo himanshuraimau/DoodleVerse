@@ -1,6 +1,7 @@
 import { CanvasPage } from "@/components/Canvas/CanvasPage";
 import { WS_URL } from "@/config";
 import { useState, useEffect, useCallback } from "react";
+import useToolStore from "@/store/useToolStore";
 
 const CONNECTION_TIMEOUT = 15000;
 const RETRY_DELAYS = [1000, 2000, 3000, 5000, 8000]; // Progressive retry delays

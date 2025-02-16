@@ -8,7 +8,12 @@ type Shape =
         y: number;
         width: number;
         height: number;
-    }
+    } | {
+        type: 'circle';
+        x: number;
+        y: number;
+        radius: number;
+    };
 
 function initializeCanvas(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
     ctx.fillStyle = "black";
@@ -24,7 +29,9 @@ function clearCanvas(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
 
 function drawShape(ctx: CanvasRenderingContext2D, shape: Shape) {
     ctx.strokeStyle = "rgba(255, 255, 255, 1)";
-    ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+    if (shape.type === 'rect') {
+        ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+    }
 }
 
 function redrawShapes(ctx: CanvasRenderingContext2D, shapes: Shape[]) {
@@ -66,10 +73,10 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
             if (message.type === 'chat') {
                 const parsedShape = JSON.parse(message.message);
                 // Avoid duplicating shapes from our own messages
-                const shapeExists = shapes.some(shape => 
-                    shape.x === parsedShape.x && 
-                    shape.y === parsedShape.y && 
-                    shape.width === parsedShape.width && 
+                const shapeExists = shapes.some(shape =>
+                    shape.x === parsedShape.x &&
+                    shape.y === parsedShape.y &&
+                    shape.width === parsedShape.width &&
                     shape.height === parsedShape.height
                 );
                 if (!shapeExists) {
@@ -106,7 +113,7 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
     const mouseUpHandler = (e: MouseEvent) => {
         if (!isDrawing) return;
         const newShape = createShape(startX, startY, e.clientX, e.clientY);
-        
+
         if (socket.readyState === WebSocket.OPEN) {
             try {
                 socket.send(JSON.stringify({
@@ -121,7 +128,7 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
         } else {
             console.warn('WebSocket not ready');
         }
-        
+
         isDrawing = false;
         clearCanvas(context, canvas);
         redrawShapes(context, shapes);

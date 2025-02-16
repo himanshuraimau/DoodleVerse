@@ -1,9 +1,16 @@
 "use client";
 import React, { useEffect, useRef } from 'react';
 import { initCanvas } from '@/components/Canvas/Canvas';
+import useToolStore from '@/store/useToolStore';
+import ToolIcon from './ToolIcon';
 
 export function CanvasPage({ roomId, socket, token }: { roomId: string, socket: WebSocket, token: string }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const { selectedTool, setSelectedTool } = useToolStore();
+
+    const handleToolSelect = (toolName: string) => {
+        setSelectedTool({ name: toolName });
+    };
 
     useEffect(() => {
         if (canvasRef.current) {
@@ -13,12 +20,17 @@ export function CanvasPage({ roomId, socket, token }: { roomId: string, socket: 
             if (!ctx) return;
 
             // Clear previous event listeners by creating new canvas instance
-            initCanvas(canvas, roomId,socket, token);
+            initCanvas(canvas, roomId, socket, token);
         }
     }, [roomId]);
 
     return (
-        <div className="relative">
+        <div className="fixed pt-2 flex flex-row justify-center items-center">
+             <div>
+                <ToolIcon toolName="rectangle" selectedTool={selectedTool?.name} handleToolSelect={handleToolSelect} />
+                <ToolIcon toolName="circle" selectedTool={selectedTool?.name} handleToolSelect={handleToolSelect} />
+            </div>
+
             <canvas
                 ref={canvasRef}
                 className="w-full h-screen bg-black"
@@ -26,6 +38,8 @@ export function CanvasPage({ roomId, socket, token }: { roomId: string, socket: 
                 width="1680"
                 height="1050"
             />
+
+           
         </div>
     );
 }
