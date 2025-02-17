@@ -16,5 +16,10 @@ export type Shape =
         y: number,
         text: string,
     }
-
-    ;
+    | {
+        type: 'arrow';
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    };
