@@ -26,10 +26,13 @@ export function CanvasPage({ roomId, socket, token }: { roomId: string, socket: 
     }, [roomId,selectedTool]);
 
     return (
-        <div className="fixed pt-2 flex flex-row justify-center items-center">
-             <div>
+        <div className="relative flex w-full h-screen">
+             <div className="absolute top-2 left-2 z-10">
                 <ToolIcon toolName="rectangle" selectedTool={selectedTool?.name} handleToolSelect={handleToolSelect} />
                 <ToolIcon toolName="circle" selectedTool={selectedTool?.name} handleToolSelect={handleToolSelect} />
+                <ToolIcon toolName="text" selectedTool={selectedTool?.name} handleToolSelect={handleToolSelect} />
+                <ToolIcon toolName="arrow" selectedTool={selectedTool?.name} handleToolSelect={handleToolSelect} />
+                <ToolIcon toolName="eraser" selectedTool={selectedTool?.name} handleToolSelect={handleToolSelect} />
             </div>
 
             <canvas
@@ -39,8 +42,6 @@ export function CanvasPage({ roomId, socket, token }: { roomId: string, socket: 
                 width="1680"
                 height="1050"
             />
-
-           
         </div>
     );
 }

@@ -1,4 +1,4 @@
-import { RectangleHorizontal,Circle } from 'lucide-react';
+import { RectangleHorizontal,Circle,Type, Pencil, MoveUpRight, Eraser } from 'lucide-react';
 
 
 
@@ -10,6 +10,9 @@ const ToolIcon = ({ toolName, selectedTool, handleToolSelect }: { toolName: stri
         >
             {toolName === 'rectangle' && <RectangleHorizontal size={24} />}
             {toolName === 'circle' && <Circle size={24} />}
+            {toolName==='text'&& <Pencil size={24}/>}
+            {toolName === 'arrow'  && <MoveUpRight size={24} />}
+            {toolName === 'eraser' && <Eraser size={24} />}
         </button>
     );
 };
