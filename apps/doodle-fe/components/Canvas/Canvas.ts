@@ -1,7 +1,7 @@
 import { HTTP_URL } from "@/config";
 import axios from "axios"
 
-type Shape =
+export type Shape =
     {
         type: 'rect';
         x: number;
@@ -72,17 +72,8 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
             const message = JSON.parse(event.data);
             if (message.type === 'chat') {
                 const parsedShape = JSON.parse(message.message);
-                // Avoid duplicating shapes from our own messages
-                const shapeExists = shapes.some(shape =>
-                    shape.x === parsedShape.x &&
-                    shape.y === parsedShape.y &&
-                    shape.width === parsedShape.width &&
-                    shape.height === parsedShape.height
-                );
-                if (!shapeExists) {
-                    shapes.push(parsedShape);
-                    redrawShapes(context, shapes);
-                }
+                shapes.push(parsedShape);
+                redrawShapes(context, shapes);
             }
         } catch (error) {
             console.error('Error processing WebSocket message:', error);
