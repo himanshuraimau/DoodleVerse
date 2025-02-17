@@ -10,6 +10,7 @@ export function CanvasPage({ roomId, socket, token }: { roomId: string, socket: 
 
     const handleToolSelect = (toolName: string) => {
         setSelectedTool({ name: toolName });
+        console.log('Selected tool:', toolName);
     };
 
     useEffect(() => {
@@ -20,9 +21,9 @@ export function CanvasPage({ roomId, socket, token }: { roomId: string, socket: 
             if (!ctx) return;
 
             // Clear previous event listeners by creating new canvas instance
-            initCanvas(canvas, roomId, socket, token);
+            initCanvas(canvas, roomId, socket, token, selectedTool?.name || 'pencil');
         }
-    }, [roomId]);
+    }, [roomId,selectedTool]);
 
     return (
         <div className="fixed pt-2 flex flex-row justify-center items-center">

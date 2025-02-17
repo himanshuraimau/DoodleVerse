@@ -32,28 +32,39 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape) {
     if (shape.type === 'rect') {
         ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
     }
+    else if (shape.type === 'circle') {
+        ctx.beginPath();
+        ctx.arc(shape.x, shape.y, shape.radius, 0, 2 * Math.PI);
+        ctx.stroke();
+    }
 }
 
 function redrawShapes(ctx: CanvasRenderingContext2D, shapes: Shape[]) {
     shapes.forEach(shape => drawShape(ctx, shape));
 }
 
-function createShape(startX: number, startY: number, currentX: number, currentY: number): Shape {
-    return {
-        type: 'rect',
-        x: startX,
-        y: startY,
-        width: currentX - startX,
-        height: currentY - startY
-    };
+function createShape(startX: number, startY: number, currentX: number, currentY: number, selectedTool: string): Shape {
+    if (selectedTool === 'circle') {
+        const radius = Math.sqrt(Math.pow(currentX - startX, 2) + Math.pow(currentY - startY, 2));
+        return {
+            type: 'circle',
+            x: startX,
+            y: startY,
+            radius: radius
+        };
+    } else {
+        return {
+            type: 'rect',
+            x: startX,
+            y: startY,
+            width: currentX - startX,
+            height: currentY - startY
+        };
+    }
 }
 
-const MAX_RETRY_ATTEMPTS = 5; // Increased from 3
-const INITIAL_RETRY_DELAY = 1000; // 1 second
-const MAX_RETRY_DELAY = 10000; // 10 seconds
-const CONNECTION_TIMEOUT = 15000; // 15 seconds
 
-export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket, token: string) {
+export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket, token: string,selectedTool:string) {
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Could not get canvas context');
 
@@ -103,7 +114,7 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
 
     const mouseUpHandler = (e: MouseEvent) => {
         if (!isDrawing) return;
-        const newShape = createShape(startX, startY, e.clientX, e.clientY);
+        const newShape = createShape(startX, startY, e.clientX, e.clientY, selectedTool);
 
         if (socket.readyState === WebSocket.OPEN) {
             try {
@@ -129,7 +140,7 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
         if (!isDrawing) return;
         clearCanvas(context, canvas);
         redrawShapes(context, shapes);
-        const tempShape = createShape(startX, startY, e.clientX, e.clientY);
+        const tempShape = createShape(startX, startY, e.clientX, e.clientY, selectedTool);
         drawShape(context, tempShape);
     };
 
