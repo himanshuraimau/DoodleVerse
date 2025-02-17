@@ -1,77 +1,67 @@
-import { HTTP_URL } from "@/config";
-import axios from "axios"
+import { Shape } from './types/shapes';
+import { initializeCanvas, clearCanvas, redrawShapes, createShape, drawShape } from './utils/canvasOperations';
+import { getExistingShapes, sendShapeToWebSocket } from './services/shapeService';
 
-export type Shape =
-    {
-        type: 'rect';
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-    } | {
-        type: 'circle';
-        x: number;
-        y: number;
-        radius: number;
+function debounce(func: Function, wait: number) {
+    let timeout: NodeJS.Timeout;
+    return function executedFunction(...args: any[]) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
     };
-
-function initializeCanvas(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "white";
 }
 
-function clearCanvas(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-function drawShape(ctx: CanvasRenderingContext2D, shape: Shape) {
-    ctx.strokeStyle = "rgba(255, 255, 255, 1)";
-    if (shape.type === 'rect') {
-        ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
-    }
-    else if (shape.type === 'circle') {
-        ctx.beginPath();
-        ctx.arc(shape.x, shape.y, shape.radius, 0, 2 * Math.PI);
-        ctx.stroke();
-    }
-}
-
-function redrawShapes(ctx: CanvasRenderingContext2D, shapes: Shape[]) {
-    shapes.forEach(shape => drawShape(ctx, shape));
-}
-
-function createShape(startX: number, startY: number, currentX: number, currentY: number, selectedTool: string): Shape {
-    if (selectedTool === 'circle') {
-        const radius = Math.sqrt(Math.pow(currentX - startX, 2) + Math.pow(currentY - startY, 2));
-        return {
-            type: 'circle',
-            x: startX,
-            y: startY,
-            radius: radius
-        };
-    } else {
-        return {
-            type: 'rect',
-            x: startX,
-            y: startY,
-            width: currentX - startX,
-            height: currentY - startY
-        };
-    }
-}
-
-
-export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket, token: string,selectedTool:string) {
+export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, socket: WebSocket, token: string, selectedTool: string) {
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Could not get canvas context');
 
     let shapes: Shape[] = [];
+    let isDrawing = false;
+    let startX = 0;
+    let startY = 0;
+    let currentText = "";
+    let textPosition = { x: 0, y: 0 };
+    let isTyping = false;
+
+    // Create text input element
+    const textInput = document.createElement('input');
+    textInput.type = 'text';
+    textInput.style.position = 'absolute';
+    textInput.style.visibility = 'hidden';
+    textInput.style.opacity = '0';  // Make it completely invisible
+    textInput.style.pointerEvents = 'none';  // Prevent it from intercepting mouse events
+    canvas.parentElement?.appendChild(textInput);
+
+    // Add cursor animation function
+    function drawCursor(x: number, y: number) {
+        const cursorHeight = 20; // Match font size
+        context?.save();
+        context?.beginPath();
+        context?.moveTo(x, y - cursorHeight);
+        context?.lineTo(x, y);
+        context!.strokeStyle = 'white';
+        context!.lineWidth = 1;
+        if (Math.floor(Date.now() / 500) % 2) { // Blink every 500ms
+            context?.stroke();
+        }
+        context?.restore();
+    }
+
+    const debouncedSendText = debounce((text: string, x: number, y: number) => {
+        const newShape = createShape(x, y, text, x, y, 'text');
+        sendShapeToWebSocket(socket, newShape, roomId);
+        shapes.push(newShape);
+        clearCanvas(context, canvas);
+        redrawShapes(context, shapes);
+        isTyping = false;
+        textInput.style.visibility = 'hidden';
+        currentText = "";
+    }, 2000);
 
     try {
-        // Initialize shapes from existing data
         shapes = await getExistingShapes(roomId, token);
     } catch (error) {
         console.error('Failed to initialize canvas:', error);
@@ -91,11 +81,7 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
         }
     };
 
-    let isDrawing = false;
-    let startX = 0;
-    let startY = 0;
-
-    // Cleanup previous listeners if they exist
+    // Cleanup previous listeners
     const oldHandlers = (canvas as any)._handlers;
     if (oldHandlers) {
         canvas.removeEventListener("mousedown", oldHandlers.mouseDown);
@@ -106,61 +92,119 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
     initializeCanvas(context, canvas);
     redrawShapes(context, shapes);
 
+    // Add cursor animation loop
+    let cursorAnimationFrame: number;
+    
+    const animateCursor = () => {
+        if (isTyping) {
+            clearCanvas(context, canvas);
+            redrawShapes(context, shapes);
+            context.font = "20px Arial";
+            context.fillStyle = "white";
+            context.fillText(currentText, textPosition.x, textPosition.y);
+            
+            const textWidth = context.measureText(currentText).width;
+            drawCursor(textPosition.x + textWidth, textPosition.y);
+            
+            cursorAnimationFrame = requestAnimationFrame(animateCursor);
+        }
+    };
+
     const mouseDownHandler = (e: MouseEvent) => {
-        isDrawing = true;
-        startX = e.clientX;
-        startY = e.clientY;
+        if (selectedTool === 'text') {
+            const rect = canvas.getBoundingClientRect();
+            textPosition = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+            textInput.style.left = `${e.clientX}px`;
+            textInput.style.top = `${e.clientY}px`;
+            textInput.style.visibility = 'visible';
+            
+            // Move focus setting to the end of the event loop
+            setTimeout(() => {
+                textInput.focus();
+            }, 0);
+            
+            isTyping = true;
+            currentText = '';
+            animateCursor();  // Start cursor animation
+        } else {
+            isTyping = false;
+            cancelAnimationFrame(cursorAnimationFrame);
+            isDrawing = true;
+            startX = e.clientX - canvas.getBoundingClientRect().left;
+            startY = e.clientY - canvas.getBoundingClientRect().top;
+        }
     };
 
     const mouseUpHandler = (e: MouseEvent) => {
-        if (!isDrawing) return;
-        const newShape = createShape(startX, startY, e.clientX, e.clientY, selectedTool);
-
-        if (socket.readyState === WebSocket.OPEN) {
-            try {
-                socket.send(JSON.stringify({
-                    type: 'chat',
-                    message: JSON.stringify(newShape),
-                    roomId: roomId,
-                }));
-                shapes.push(newShape);
-            } catch (error) {
-                console.error('Error sending shape through WebSocket:', error);
-            }
-        } else {
-            console.warn('WebSocket not ready');
-        }
-
+        if (!isDrawing || selectedTool === 'text') return;
+        const rect = canvas.getBoundingClientRect();
+        const newShape = createShape(
+            startX,
+            startY,
+            currentText,
+            e.clientX - rect.left,
+            e.clientY - rect.top,
+            selectedTool
+        );
+        sendShapeToWebSocket(socket, newShape, roomId);
+        shapes.push(newShape);
         isDrawing = false;
         clearCanvas(context, canvas);
         redrawShapes(context, shapes);
     };
 
     const mouseMoveHandler = (e: MouseEvent) => {
-        if (!isDrawing) return;
+        if (!isDrawing || selectedTool === 'text') return;
+        const rect = canvas.getBoundingClientRect();
         clearCanvas(context, canvas);
         redrawShapes(context, shapes);
-        const tempShape = createShape(startX, startY, e.clientX, e.clientY, selectedTool);
+        const tempShape = createShape(
+            startX,
+            startY,
+            currentText,
+            e.clientX - rect.left,
+            e.clientY - rect.top,
+            selectedTool
+        );
         drawShape(context, tempShape);
     };
+
+    textInput.addEventListener('input', (e: Event) => {
+        const input = e.target as HTMLInputElement;
+        currentText = input.value;
+        clearCanvas(context, canvas);
+        redrawShapes(context, shapes);
+        context.font = "20px Arial";
+        context.fillStyle = "white";
+        context.fillText(currentText, textPosition.x, textPosition.y);
+        
+        // Calculate cursor position based on text width
+        const textWidth = context.measureText(currentText).width;
+        drawCursor(textPosition.x + textWidth, textPosition.y);
+        
+        debouncedSendText(currentText, textPosition.x, textPosition.y);
+    });
 
     canvas.addEventListener("mousedown", mouseDownHandler);
     canvas.addEventListener("mouseup", mouseUpHandler);
     canvas.addEventListener("mousemove", mouseMoveHandler);
 
-    // Store handlers for cleanup
     (canvas as any)._handlers = {
         mouseDown: mouseDownHandler,
         mouseUp: mouseUpHandler,
         mouseMove: mouseMoveHandler
     };
 
-    // Enhanced cleanup function
     return {
         cleanup: () => {
+            cancelAnimationFrame(cursorAnimationFrame);
             canvas.removeEventListener("mousedown", mouseDownHandler);
             canvas.removeEventListener("mouseup", mouseUpHandler);
             canvas.removeEventListener("mousemove", mouseMoveHandler);
+            textInput.remove();
             if (socket.readyState === WebSocket.OPEN) {
                 socket.close();
             }
@@ -169,12 +213,4 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
     };
 }
 
-async function getExistingShapes(roomId: string, token: string) {
-    const res = await axios.get(`${HTTP_URL}/room/${roomId}/chats`, {
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
-    });
-    const messages = res.data.messages;
-    return messages.map((x: { message: string }) => JSON.parse(x.message));
-}
+export type { Shape } from './types/shapes';
