@@ -1,4 +1,5 @@
 import { Shape } from '../types/shapes';
+import { generateUniqueId } from './idGenerator';
 
 export function initializeCanvas(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
     ctx.fillStyle = "black";
@@ -64,9 +65,12 @@ export function redrawShapes(ctx: CanvasRenderingContext2D, shapes: Shape[]) {
 }
 
 export function createShape(startX: number, startY: number, text: string, currentX: number, currentY: number, selectedTool: string): Shape {
+    const id = generateUniqueId();
+    
     if (selectedTool === 'circle') {
         const radius = Math.sqrt(Math.pow(currentX - startX, 2) + Math.pow(currentY - startY, 2));
         return {
+            id,
             type: 'circle',
             x: startX,
             y: startY,
@@ -74,6 +78,7 @@ export function createShape(startX: number, startY: number, text: string, curren
         };
     } else if (selectedTool === 'text') {
         return {
+            id,
             type: 'text',
             x: startX,
             y: startY,
@@ -81,6 +86,7 @@ export function createShape(startX: number, startY: number, text: string, curren
         }
     } else if (selectedTool === 'arrow') {
         return {
+            id,
             type: 'arrow',
             x: startX,
             y: startY,
@@ -90,6 +96,7 @@ export function createShape(startX: number, startY: number, text: string, curren
     }
     else {
         return {
+            id,
             type: 'rect',
             x: startX,
             y: startY,
