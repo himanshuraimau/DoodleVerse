@@ -7,7 +7,7 @@ import {
   Github,
   Share2,
   Palette,
-  Brain,
+  Users,
   Menu,
   X
 } from 'lucide-react';
@@ -86,14 +86,14 @@ function LandingPage() {
               </div>
             </div>
             <h1 className="text-5xl md:text-6xl font-bold text-white leading-tight mb-6">
-              Collaborate & Create with{' '}
+              Collaborate & Create in{' '}
               <span className="text-emerald-400">
-                AI-Powered Drawing
+                Real-time Drawing
               </span>
             </h1>
             <p className="text-xl text-gray-300 mb-8 leading-relaxed">
               Transform your ideas into reality with DoodleVerse's collaborative canvas.
-              Draw together in real-time, enhanced by AI features that make creation magical.
+              Draw together in real-time and bring your creative visions to life.
             </p>
             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-5">
               <Link href="/signup" className="group relative">
@@ -153,9 +153,9 @@ function LandingPage() {
               description="Draw and design together with your team in real-time, no matter where they are."
             />
             <FeatureCard
-              icon={<Brain className="h-9 w-9 text-emerald-400" />}
-              title="AI Enhancement"
-              description="Let AI help perfect your sketches and suggest improvements as you draw."
+              icon={<Users className="h-9 w-9 text-emerald-400" />}
+              title="Team Workspace"
+              description="Create shared workspaces for your team to collaborate on multiple projects."
             />
             <FeatureCard
               icon={<Palette className="h-9 w-9 text-emerald-400" />}
@@ -166,14 +166,6 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="container mx-auto px-6 py-24">
-        <div className="grid md:grid-cols-3 gap-10">
-          <StatCard number="100K+" label="Active Users" />
-          <StatCard number="1M+" label="Drawings Created" />
-          <StatCard number="150+" label="Countries" />
-        </div>
-      </section>
 
       {/* Footer */}
       <footer className="border-t border-gray-900 py-10">

@@ -29,7 +29,26 @@ class RoomController {
             return;
         }
     }
-    
+    async getUserRooms(req: Request, res: Response) {
+        const userId = req.userId;
+        if (!userId) {
+            res.status(401).json({ message: "Unauthorized" });
+            return;
+        }
+
+        try {
+            const rooms = await prismaClient.room.findMany({
+                where: {
+                    adminId: userId
+                }
+            });
+            res.json({ rooms });
+        } catch (error) {
+            res.status(500).json({ error: "Internal server error" });
+            return;
+        }
+    }
+
     async getRoom(req: Request, res: Response) {
         const slug = req.params.slug;
         if (!slug) {
@@ -66,10 +85,10 @@ class RoomController {
                 where: {
                     roomId: Number(roomId)
                 },
-                orderBy:{
+                orderBy: {
                     id: 'asc'
                 },
-                take:50
+                take: 50
             });
             res.json({ messages: chats });
         } catch (error) {
