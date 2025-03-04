@@ -1,6 +1,8 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import Link from 'next/link';
+import { Paintbrush } from 'lucide-react';
 
 interface Room {
     id: number;
@@ -42,52 +44,69 @@ export default function Page() {
         fetchRooms();
     }, []);
 
-    if (isLoading) return <div>Loading...</div>;
-    if (error) return <div>Error: {error}</div>;
+    const signOut = () => {
+        localStorage.removeItem('token');
+        window.location.href = '/';
+    };
+
+    if (isLoading) return <div className="flex justify-center items-center min-h-screen"><span className="text-white">Loading...</span></div>;
+    if (error) return <div className="flex justify-center items-center min-h-screen"><span className="text-red-500">Error: {error}</span></div>;
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">Your Doodle Rooms</h1>
-            
-            <section className="mb-8">
-                {rooms.length === 0 ? (
-                    <div className="text-center p-8 bg-gray-50 rounded-lg">
-                        <p className="text-gray-600">No rooms created yet. Create your first room to get started!</p>
-                    </div>
-                ) : (
-                    <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                        {rooms.map((room) => (
-                            <div key={room.id} className="p-6 bg-white shadow-md rounded-lg hover:shadow-lg transition-shadow">
-                                <div className="flex justify-between items-start">
-                                    <h3 className="text-xl font-semibold text-gray-800">{room.slug}</h3>
-                                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                                        #{room.id}
-                                    </span>
-                                </div>
-                                <div className="mt-4 text-sm text-gray-600">
-                                    <p>Created: {formatDate(room.createdAt)}</p>
-                                </div>
-                                <div className="mt-4 flex gap-2">
-                                    <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm">
-                                        Join Session
-                                    </button>
-                                    <button className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm">
-                                        Share
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </section>
+        <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white py-12 px-6">
+            <div className="container mx-auto max-w-3xl">
+                <header className="mb-8 flex items-center justify-between">
+                    <Link href="/" className="flex items-center text-2xl font-bold">
+                        <Paintbrush className="mr-2 h-6 w-6 text-emerald-400" />
+                        DoodleVerse
+                    </Link>
+                    <nav>
+                        <button onClick={signOut} className="text-gray-300 hover:text-emerald-400 transition-colors">
+                            Sign Out
+                        </button>
+                    </nav>
+                </header>
 
-            <div className="flex gap-4">
-                <button className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium">
-                    Join Room
-                </button>
-                <button className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium">
-                    Create Room
-                </button>
+                <h1 className="text-3xl font-bold mb-6 text-emerald-400">Your Doodle Rooms</h1>
+
+                <section className="mb-8">
+                    {rooms.length === 0 ? (
+                        <div className="text-center p-8 bg-black/50 backdrop-blur-sm rounded-xl border border-gray-800">
+                            <p className="text-gray-300">No rooms created yet. Create your first room to get started!</p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+                            {rooms.map((room) => (
+                                <div key={room.id} className="group p-6 bg-black/50 backdrop-blur-sm rounded-xl border border-gray-800 hover:border-emerald-500/30 transition-all">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <h3 className="text-xl font-semibold text-white group-hover:text-emerald-400 transition-colors">{room.slug}</h3>
+                                        <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full text-sm">
+                                            #{room.id}
+                                        </span>
+                                    </div>
+                                    <div className="text-sm text-gray-400 mb-4">
+                                        Created: {formatDate(room.createdAt)}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Link href={`/canvas/${room.id}`} className="px-4 py-2 bg-emerald-500 text-white rounded-full hover:bg-emerald-400 transition-colors text-sm">
+                                            Join Session
+                                        </Link>
+
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </section>
+
+                <div className="flex gap-4">
+                    <Link href="/dashboard/joinRoom" className="px-6 py-3 bg-black text-emerald-400 rounded-full hover:bg-gray-900 transition-colors font-medium border border-emerald-500/50">
+                        Join Room
+                    </Link>
+                    <Link href="/dashboard/createRoom" className="px-6 py-3 bg-emerald-500 text-white rounded-full hover:bg-emerald-400 transition-colors font-medium">
+                        Create Room
+                    </Link>
+                </div>
             </div>
         </div>
     );

@@ -50,8 +50,8 @@ class RoomController {
     }
 
     async getRoom(req: Request, res: Response) {
-        const slug = req.params.slug;
-        if (!slug) {
+        const id = req.params.id;
+        if (!id) {
             res.status(400).json({ message: "Slug is required" });
             return;
         }
@@ -59,7 +59,10 @@ class RoomController {
         try {
             const room = await prismaClient.room.findFirst({
                 where: {
-                    slug: slug
+                    OR: [
+                        { id: Number(id) },
+                        { slug: id },
+                    ]
                 }
             });
             if (!room) {
@@ -94,6 +97,39 @@ class RoomController {
         } catch (error) {
             res.status(500).json({ error: "Internal server error" });
             return;
+        }
+    }
+
+    async joinRoom(req: Request, res: Response) {
+        const roomId = req.params.roomId;
+        const userId = req.userId;
+
+        if (!roomId) {
+            res.status(400).json({ message: "Room ID is required" });
+            return;
+        }
+
+        if (!userId) {
+            res.status(401).json({ message: "Unauthorized" });
+            return;
+        }
+
+        try {
+            // Check if the room exists
+            const room = await prismaClient.room.findUnique({
+                where: {
+                    id: Number(roomId)
+                }
+            });
+
+            if (!room) {
+                return res.status(404).json({ message: "Room not found" });
+            }
+
+            return res.json({ message: "Successfully joined the room" });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ error: "Internal server error" });
         }
     }
 }

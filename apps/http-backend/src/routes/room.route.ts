@@ -8,7 +8,7 @@ router.post('/', authMiddleware, (req: Request, res: Response, next: NextFunctio
     RoomController.createRoom(req, res).catch(next);
 });
 
-router.get('/:slug', authMiddleware, (req: Request, res: Response, next: NextFunction) => {
+router.get('/:id', authMiddleware, (req: Request, res: Response, next: NextFunction) => {
     RoomController.getRoom(req, res).catch(next);
 });
 
@@ -18,6 +18,10 @@ router.get('/user/rooms', authMiddleware, (req: Request, res: Response, next: Ne
 
 router.get('/:roomId/chats', authMiddleware, (req: Request, res: Response, next: NextFunction) => {
     RoomController.getChats(req, res).catch(next);
+});
+
+router.post('/:roomId/join', authMiddleware, (req: Request, res: Response, next: NextFunction) => {
+    RoomController.joinRoom(req, res).catch(next);
 });
 
 export { router as roomRouter };
