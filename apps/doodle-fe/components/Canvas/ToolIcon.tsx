@@ -1,21 +1,37 @@
-import { RectangleHorizontal,Circle,Type, Pencil, MoveUpRight, Eraser } from 'lucide-react';
+import React from 'react';
+import { LucideIcon } from 'lucide-react';
+import { RectangleVertical, Circle, Type, ArrowUpRight, Eraser } from 'lucide-react';
 
+interface ToolIconProps {
+    toolName: string;
+    selectedTool?: string;
+    handleToolSelect: (toolName: string) => void;
+}
 
+const toolIcons: { [key: string]: LucideIcon } = {
+    rectangle: RectangleVertical,
+    circle: Circle,
+    text: Type,
+    arrow: ArrowUpRight,
+    eraser: Eraser,
+};
 
-const ToolIcon = ({ toolName, selectedTool, handleToolSelect }: { toolName: string, selectedTool: string | undefined, handleToolSelect: (toolName: string) => void }) => {
+const ToolIcon: React.FC<ToolIconProps> = ({ toolName, selectedTool, handleToolSelect }) => {
+    const Icon = toolIcons[toolName];
+    const isSelected = selectedTool === toolName;
+
     return (
         <button
-            className={`p-2 rounded-full ${selectedTool === toolName ? 'bg-gray-700' : 'bg-gray-800'}`}
+            className={`relative group p-3 rounded-lg transition-colors duration-200 ${isSelected ? 'bg-emerald-500' : 'bg-gray-800 hover:bg-gray-700'
+                }`}
             onClick={() => handleToolSelect(toolName)}
         >
-            {toolName === 'rectangle' && <RectangleHorizontal size={24} />}
-            {toolName === 'circle' && <Circle size={24} />}
-            {toolName==='text'&& <Pencil size={24}/>}
-            {toolName === 'arrow'  && <MoveUpRight size={24} />}
-            {toolName === 'eraser' && <Eraser size={24} />}
+            {isSelected && (
+                <span className="absolute -inset-1 bg-emerald-500 rounded-full blur opacity-50 group-hover:opacity-75 transition-opacity"></span>
+            )}
+            <Icon className="h-6 w-6 text-white relative" />
         </button>
     );
 };
-
 
 export default ToolIcon;

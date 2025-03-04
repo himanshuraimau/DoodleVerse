@@ -1,12 +1,15 @@
 "use client";
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { initCanvas } from '@/components/Canvas/Canvas';
 import useToolStore from '@/store/useToolStore';
 import ToolIcon from './ToolIcon';
+import GradientCanvas from './GradientCanvas';
+
 
 export function CanvasPage({ roomId, socket, token }: { roomId: string, socket: WebSocket, token: string }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const { selectedTool, setSelectedTool } = useToolStore();
+
 
     const handleToolSelect = (toolName: string) => {
         setSelectedTool({ name: toolName });
@@ -23,25 +26,28 @@ export function CanvasPage({ roomId, socket, token }: { roomId: string, socket: 
             // Clear previous event listeners by creating new canvas instance
             initCanvas(canvas, roomId, socket, token, selectedTool?.name || 'pencil');
         }
-    }, [roomId,selectedTool]);
+    }, [roomId, selectedTool]);
 
     return (
-        <div className="relative flex w-full h-screen">
-             <div className="absolute top-2 left-2 z-10">
+        <div className="relative flex w-full h-screen bg-gradient-to-br from-gray-900 to-black overflow-hidden">
+            <div className="absolute top-4 left-4 z-10 flex flex-col space-y-2">
                 <ToolIcon toolName="rectangle" selectedTool={selectedTool?.name} handleToolSelect={handleToolSelect} />
                 <ToolIcon toolName="circle" selectedTool={selectedTool?.name} handleToolSelect={handleToolSelect} />
                 <ToolIcon toolName="text" selectedTool={selectedTool?.name} handleToolSelect={handleToolSelect} />
                 <ToolIcon toolName="arrow" selectedTool={selectedTool?.name} handleToolSelect={handleToolSelect} />
                 <ToolIcon toolName="eraser" selectedTool={selectedTool?.name} handleToolSelect={handleToolSelect} />
+
             </div>
 
-            <canvas
-                ref={canvasRef}
-                className="w-full h-screen bg-black"
-                id="canvas"
-                width="1680"
-                height="1050"
-            />
+            <GradientCanvas>
+                <canvas
+                    ref={canvasRef}
+                    className="rounded-xl shadow-2xl border border-gray-800"
+                    id="canvas"
+                    width="1680"
+                    height="1050"
+                />
+            </GradientCanvas>
         </div>
     );
 }
