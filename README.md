@@ -1,84 +1,109 @@
-# Turborepo starter
+# DoodleVerse
 
-This Turborepo starter is maintained by the Turborepo core team.
+DoodleVerse is a real-time collaborative whiteboarding platform built with modern web technologies. It allows multiple users to draw, sketch, and collaborate in shared workspaces simultaneously.
 
-## Using this example
+## 🚀 Tech Stack
 
-Run the following command:
+- **Frontend**: Next.js 15, React, TailwindCSS
+- **HTTP Backend**: Express.js
+- **WebSocket Backend**: WebSocket (ws)
+- **Database**: PostgreSQL
+- **Package Manager**: pnpm
+- **Monorepo Management**: Turborepo
 
-```sh
-npx create-turbo@latest
-```
-
-## What's inside?
-
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
+## 📁 Project Structure
 
 ```
-cd my-turborepo
-pnpm build
+DoodleVerse/
+├── apps/
+│   ├── doodle-fe/        # Next.js 15 frontend application
+│   ├── http-backend/     # Express.js HTTP API service
+│   └── ws-backend/       # WebSocket service
+├── packages/
+│   ├── shared/           # Shared types and utilities
+│   └── db/              # Database client and schema
+└── package.json
 ```
 
-### Develop
+## 🛠️ Setup & Installation
 
-To develop all apps and packages, run the following command:
-
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/DoodleVerse.git
+cd DoodleVerse
 ```
-cd my-turborepo
+
+2. Install dependencies:
+```bash
+pnpm install
+```
+
+3. Set up environment variables:
+```bash
+# In apps/doodle-fe/.env
+NEXT_PUBLIC_HTTP_API_URL=http://localhost:3001
+NEXT_PUBLIC_WS_URL=ws://localhost:3002
+
+# In apps/http-backend/.env
+DATABASE_URL=postgresql://user:password@localhost:5432/doodleverse
+JWT_SECRET=your_jwt_secret
+
+# In apps/ws-backend/.env
+DATABASE_URL=postgresql://user:password@localhost:5432/doodleverse
+JWT_SECRET=your_jwt_secret
+```
+
+4. Start the development servers:
+```bash
 pnpm dev
 ```
 
-### Remote Caching
+## 🎨 Features
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+- Real-time collaborative drawing
+- Multiple drawing tools (Rectangle, Circle, Text, Arrow)
+- Eraser tool
+- Room-based collaboration
+- User authentication
+- Responsive design
 
-Turborepo can use a technique known as [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+## 🔧 Development
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+### Frontend (apps/doodle-fe)
+- Port: 3000
+- Built with Next.js 15 App Router
+- Uses WebSocket for real-time updates
+- TailwindCSS for styling
 
-```
-cd my-turborepo
-npx turbo login
-```
+### HTTP Backend (apps/http-backend)
+- Port: 3001
+- RESTful API endpoints
+- User authentication
+- Room management
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+### WebSocket Backend (apps/ws-backend)
+- Port: 8080
+- Real-time communication
+- Drawing synchronization
+- Chat functionality
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+### Database
+- PostgreSQL for persistent storage
+- Prisma as ORM
+- Shared database schema
 
-```
-npx turbo link
-```
+## 🌟 Contributing
 
-## Useful Links
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
-Learn more about the power of Turborepo:
+## 📄 License
 
-- [Tasks](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
-- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
-- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
-- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
-- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
-- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 👥 Contact
+
+For any queries or suggestions, please open an issue in the repository.

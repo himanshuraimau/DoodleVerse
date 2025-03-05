@@ -1,6 +1,6 @@
 import { Shape } from './types/shapes';
-import { initializeCanvas, clearCanvas, redrawShapes, createShape, drawShape } from './utils/canvasOperations';
-import { getExistingShapes, sendShapeToWebSocket } from './services/shapeService';
+import { initializeCanvas, clearCanvas, redrawShapes, createShape, drawShape, eraseShapes } from './utils/canvasOperations';
+import { getExistingShapes, sendShapeToWebSocket, sendEraseShapeToWebSocket } from './services/shapeService';
 
 function debounce(func: Function, wait: number) {
     let timeout: NodeJS.Timeout;
@@ -25,6 +25,32 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
     let currentText = "";
     let textPosition = { x: 0, y: 0 };
     let isTyping = false;
+    let currentTool = selectedTool;
+
+    const updateTool = (newTool: string) => {
+        currentTool = newTool;
+        // Update cursor style based on tool
+        switch (newTool) {
+            case 'eraser':
+                canvas.style.cursor = 'crosshair';
+                break;
+            case 'text':
+                canvas.style.cursor = 'text';
+                break;
+            default:
+                canvas.style.cursor = 'default';
+        }
+    };
+
+    initializeCanvas(context, canvas);
+
+    try {
+        const existingShapes = await getExistingShapes(roomId, token);
+        shapes = existingShapes;
+        redrawShapes(context, shapes);
+    } catch (error) {
+        console.error('Failed to fetch existing shapes:', error);
+    }
 
     // Create text input element
     const textInput = document.createElement('input');
@@ -61,20 +87,27 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
         currentText = "";
     }, 2000);
 
-    try {
-        shapes = await getExistingShapes(roomId, token);
-    } catch (error) {
-        console.error('Failed to initialize canvas:', error);
-        throw error;
-    }
-
     socket.onmessage = (event: any) => {
         try {
             const message = JSON.parse(event.data);
             if (message.type === 'chat') {
-                const parsedShape = JSON.parse(message.message);
-                shapes.push(parsedShape);
-                redrawShapes(context, shapes);
+                try {
+                    const parsedShape = JSON.parse(message.message);
+                    // Only add the shape if it's not already in the array
+                    if (!shapes.some(shape => shape.id === parsedShape.id)) {
+                        shapes.push(parsedShape);
+                        clearCanvas(context!, canvas);
+                        redrawShapes(context!, shapes);
+                    }
+                } catch (e) {
+                    console.error('Error parsing shape:', e);
+                }
+            } else if (message.type === 'erase') {
+                shapes = shapes.map(shape => 
+                    shape.id === message.shapeId ? { ...shape, isDeleted: true } : shape
+                ).filter(shape => !shape.isDeleted);
+                clearCanvas(context!, canvas);
+                redrawShapes(context!, shapes);
             }
         } catch (error) {
             console.error('Error processing WebSocket message:', error);
@@ -88,9 +121,6 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
         canvas.removeEventListener("mouseup", oldHandlers.mouseUp);
         canvas.removeEventListener("mousemove", oldHandlers.mouseMove);
     }
-
-    initializeCanvas(context, canvas);
-    redrawShapes(context, shapes);
 
     // Add cursor animation loop
     let cursorAnimationFrame: number;
@@ -111,12 +141,25 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
     };
 
     const mouseDownHandler = (e: MouseEvent) => {
-        if (selectedTool === 'text') {
-            const rect = canvas.getBoundingClientRect();
-            textPosition = {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top
-            };
+        const rect = canvas.getBoundingClientRect();
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+
+        if (currentTool === 'eraser') {
+            const shapeId = eraseShapes(context!, canvas, shapes, { x: startX, y: startY });
+            if (shapeId) {
+                sendEraseShapeToWebSocket(socket, shapeId, roomId);
+                shapes = shapes.filter(shape => shape.id !== shapeId);
+                clearCanvas(context!, canvas);
+                redrawShapes(context!, shapes);
+            }
+            return;
+        }
+
+        if (currentTool === 'text') {
+            isTyping = true;
+            textPosition = { x: startX, y: startY };
+            currentText = '';
             textInput.style.left = `${e.clientX}px`;
             textInput.style.top = `${e.clientY}px`;
             textInput.style.visibility = 'visible';
@@ -126,50 +169,67 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
                 textInput.focus();
             }, 0);
             
-            isTyping = true;
-            currentText = '';
             animateCursor();  // Start cursor animation
         } else {
-            isTyping = false;
-            cancelAnimationFrame(cursorAnimationFrame);
             isDrawing = true;
-            startX = e.clientX - canvas.getBoundingClientRect().left;
-            startY = e.clientY - canvas.getBoundingClientRect().top;
         }
     };
 
-    const mouseUpHandler = (e: MouseEvent) => {
-        if (!isDrawing || selectedTool === 'text') return;
-        const rect = canvas.getBoundingClientRect();
-        const newShape = createShape(
-            startX,
-            startY,
-            currentText,
-            e.clientX - rect.left,
-            e.clientY - rect.top,
-            selectedTool
-        );
-        sendShapeToWebSocket(socket, newShape, roomId);
-        shapes.push(newShape);
-        isDrawing = false;
-        clearCanvas(context, canvas);
-        redrawShapes(context, shapes);
-    };
-
     const mouseMoveHandler = (e: MouseEvent) => {
-        if (!isDrawing || selectedTool === 'text') return;
+        if (!isDrawing || !context) return;
+
         const rect = canvas.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+
+        if (currentTool === 'eraser') {
+            const shapeId = eraseShapes(context!, canvas, shapes, { x: currentX, y: currentY });
+            if (shapeId) {
+                sendEraseShapeToWebSocket(socket, shapeId, roomId);
+                shapes = shapes.filter(shape => shape.id !== shapeId);
+                clearCanvas(context!, canvas);
+                redrawShapes(context!, shapes);
+            }
+            return;
+        }
+
         clearCanvas(context, canvas);
         redrawShapes(context, shapes);
+        
         const tempShape = createShape(
             startX,
             startY,
             currentText,
-            e.clientX - rect.left,
-            e.clientY - rect.top,
-            selectedTool
+            currentX,
+            currentY,
+            currentTool // Use currentTool instead of selectedTool
         );
         drawShape(context, tempShape);
+    };
+
+    const mouseUpHandler = (e: MouseEvent) => {
+        if (!isDrawing || !context) return;
+        if (currentTool === 'eraser' || currentTool === 'text') return;
+
+        const rect = canvas.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+
+        const newShape = createShape(
+            startX,
+            startY,
+            currentText,
+            currentX,
+            currentY,
+            currentTool // Use currentTool instead of selectedTool
+        );
+
+        shapes.push(newShape);
+        sendShapeToWebSocket(socket, newShape, roomId);
+        
+        clearCanvas(context, canvas);
+        redrawShapes(context, shapes);
+        isDrawing = false;
     };
 
     textInput.addEventListener('input', (e: Event) => {
@@ -191,6 +251,7 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
     canvas.addEventListener("mousedown", mouseDownHandler);
     canvas.addEventListener("mouseup", mouseUpHandler);
     canvas.addEventListener("mousemove", mouseMoveHandler);
+    canvas.addEventListener('mouseleave', mouseUpHandler);
 
     (canvas as any)._handlers = {
         mouseDown: mouseDownHandler,
@@ -204,12 +265,14 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
             canvas.removeEventListener("mousedown", mouseDownHandler);
             canvas.removeEventListener("mouseup", mouseUpHandler);
             canvas.removeEventListener("mousemove", mouseMoveHandler);
+            canvas.removeEventListener('mouseleave', mouseUpHandler);
             textInput.remove();
             if (socket.readyState === WebSocket.OPEN) {
                 socket.close();
             }
         },
-        isConnected: () => socket.readyState === WebSocket.OPEN
+        isConnected: () => socket.readyState === WebSocket.OPEN,
+        updateTool // Export the updateTool function
     };
 }
 

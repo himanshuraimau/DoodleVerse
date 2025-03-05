@@ -49,12 +49,12 @@ export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape) {
             const angle = Math.atan2(shape.height, shape.width);
             const endX = shape.x + shape.width;
             const endY = shape.y + shape.height;
-            
+
             ctx.beginPath();
             ctx.moveTo(shape.x, shape.y);
             ctx.lineTo(endX, endY);
             ctx.stroke();
-            
+
             drawArrowhead(ctx, endX, endY, angle);
         }
     }
@@ -66,7 +66,7 @@ export function redrawShapes(ctx: CanvasRenderingContext2D, shapes: Shape[]) {
 
 export function createShape(startX: number, startY: number, text: string, currentX: number, currentY: number, selectedTool: string): Shape {
     const id = generateUniqueId();
-    
+
     if (selectedTool === 'circle') {
         const radius = Math.sqrt(Math.pow(currentX - startX, 2) + Math.pow(currentY - startY, 2));
         return {
@@ -74,7 +74,8 @@ export function createShape(startX: number, startY: number, text: string, curren
             type: 'circle',
             x: startX,
             y: startY,
-            radius: radius
+            radius: radius,
+            isDeleted: false
         };
     } else if (selectedTool === 'text') {
         return {
@@ -82,7 +83,8 @@ export function createShape(startX: number, startY: number, text: string, curren
             type: 'text',
             x: startX,
             y: startY,
-            text: text
+            text: text,
+            isDeleted: false
         }
     } else if (selectedTool === 'arrow') {
         return {
@@ -91,7 +93,8 @@ export function createShape(startX: number, startY: number, text: string, curren
             x: startX,
             y: startY,
             width: currentX - startX,
-            height: currentY - startY
+            height: currentY - startY,
+            isDeleted: false
         };
     }
     else {
@@ -101,7 +104,47 @@ export function createShape(startX: number, startY: number, text: string, curren
             x: startX,
             y: startY,
             width: currentX - startX,
-            height: currentY - startY
+            height: currentY - startY,
+            isDeleted: false
         };
     }
+}
+
+export function eraseShapes(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, shapes: Shape[], point: { x: number, y: number }): string | null {
+    // Find the shape that was clicked
+    for (let i = shapes.length - 1; i >= 0; i--) {
+        const shape = shapes[i];
+        if (shape.isDeleted) continue;
+
+        if (isPointInShape(point, shape)) {
+            return shape.id;
+        }
+    }
+    return null;
+}
+
+function isPointInShape(point: { x: number, y: number }, shape: Shape): boolean {
+    switch (shape.type) {
+        case 'rect':
+            return point.x >= shape.x && point.x <= shape.x + shape.width &&
+                   point.y >= shape.y && point.y <= shape.y + shape.height;
+        case 'circle':
+            const distance = Math.sqrt(
+                Math.pow(point.x - shape.x, 2) + Math.pow(point.y - shape.y, 2)
+            );
+            return distance <= shape.radius;
+        case 'text':
+            return point.x >= shape.x && point.x <= shape.x + 100 && // Approximate text width
+                   point.y >= shape.y - 20 && point.y <= shape.y; // Approximate text height
+        case 'arrow':
+            // Simplified arrow hit detection using bounding box
+            return point.x >= shape.x && point.x <= shape.x + shape.width &&
+                   point.y >= shape.y && point.y <= shape.y + shape.height;
+    }
+}
+
+export function removeShape(shapes: Shape[], shapeId: string): Shape[] {
+    return shapes.map(shape => 
+        shape.id === shapeId ? { ...shape, isDeleted: true } : shape
+    );
 }
