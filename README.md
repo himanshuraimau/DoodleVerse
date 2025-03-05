@@ -2,6 +2,11 @@
 
 DoodleVerse is a real-time collaborative whiteboarding platform built with modern web technologies. It allows multiple users to draw, sketch, and collaborate in shared workspaces simultaneously.
 
+## 🎥 Preview
+
+<video src="output.mp4" width="640" height="360" controls>
+  Your browser does not support the video tag.
+</video>
 
 ## 🚀 Tech Stack
 
