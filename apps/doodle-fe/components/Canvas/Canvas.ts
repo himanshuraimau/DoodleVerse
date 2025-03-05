@@ -26,9 +26,15 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
     let textPosition = { x: 0, y: 0 };
     let isTyping = false;
     let currentTool = selectedTool;
+    let isErasing = false;
+    const ERASER_SIZE = 20;
 
     const updateTool = (newTool: string) => {
         currentTool = newTool;
+        // Remove custom cursor when switching tools
+        if (newTool !== 'eraser') {
+            canvas.style.cursor = 'default';
+        }
         // Update cursor style based on tool
         switch (newTool) {
             case 'eraser':
@@ -74,6 +80,16 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
             context?.stroke();
         }
         context?.restore();
+    }
+
+    function drawEraserCursor(context: CanvasRenderingContext2D, x: number, y: number) {
+        context.save();
+        context.beginPath();
+        context.arc(x, y, ERASER_SIZE/2, 0, Math.PI * 2);
+        context.strokeStyle = 'white';
+        context.lineWidth = 2;
+        context.stroke();
+        context.restore();
     }
 
     const debouncedSendText = debounce((text: string, x: number, y: number) => {
@@ -146,12 +162,14 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
         startY = e.clientY - rect.top;
 
         if (currentTool === 'eraser') {
+            isDrawing = true;
             const shapeId = eraseShapes(context!, canvas, shapes, { x: startX, y: startY });
             if (shapeId) {
                 sendEraseShapeToWebSocket(socket, shapeId, roomId);
                 shapes = shapes.filter(shape => shape.id !== shapeId);
                 clearCanvas(context!, canvas);
                 redrawShapes(context!, shapes);
+                drawEraserCursor(context!, startX, startY);
             }
             return;
         }
@@ -176,22 +194,30 @@ export async function initCanvas(canvas: HTMLCanvasElement, roomId: string, sock
     };
 
     const mouseMoveHandler = (e: MouseEvent) => {
-        if (!isDrawing || !context) return;
-
         const rect = canvas.getBoundingClientRect();
         const currentX = e.clientX - rect.left;
         const currentY = e.clientY - rect.top;
 
         if (currentTool === 'eraser') {
-            const shapeId = eraseShapes(context!, canvas, shapes, { x: currentX, y: currentY });
-            if (shapeId) {
-                sendEraseShapeToWebSocket(socket, shapeId, roomId);
-                shapes = shapes.filter(shape => shape.id !== shapeId);
-                clearCanvas(context!, canvas);
-                redrawShapes(context!, shapes);
+            // Always show eraser cursor when tool is selected
+            clearCanvas(context!, canvas);
+            redrawShapes(context!, shapes);
+            drawEraserCursor(context!, currentX, currentY);
+            
+            if (isDrawing) {
+                const shapeId = eraseShapes(context!, canvas, shapes, { x: currentX, y: currentY });
+                if (shapeId) {
+                    sendEraseShapeToWebSocket(socket, shapeId, roomId);
+                    shapes = shapes.filter(shape => shape.id !== shapeId);
+                    clearCanvas(context!, canvas);
+                    redrawShapes(context!, shapes);
+                    drawEraserCursor(context!, currentX, currentY);
+                }
             }
             return;
         }
+
+        if (!isDrawing || !context) return;
 
         clearCanvas(context, canvas);
         redrawShapes(context, shapes);

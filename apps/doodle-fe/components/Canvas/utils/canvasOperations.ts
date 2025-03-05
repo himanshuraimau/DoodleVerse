@@ -110,36 +110,60 @@ export function createShape(startX: number, startY: number, text: string, curren
     }
 }
 
+const ERASER_SIZE = 20;
+
 export function eraseShapes(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, shapes: Shape[], point: { x: number, y: number }): string | null {
-    // Find the shape that was clicked
+    // Find the shape that intersects with the eraser circle
     for (let i = shapes.length - 1; i >= 0; i--) {
         const shape = shapes[i];
         if (shape.isDeleted) continue;
 
-        if (isPointInShape(point, shape)) {
+        if (isShapeIntersectingEraser(point, shape, ERASER_SIZE/2)) {
             return shape.id;
         }
     }
     return null;
 }
 
-function isPointInShape(point: { x: number, y: number }, shape: Shape): boolean {
+function isShapeIntersectingEraser(point: { x: number, y: number }, shape: Shape, eraserRadius: number): boolean {
     switch (shape.type) {
         case 'rect':
-            return point.x >= shape.x && point.x <= shape.x + shape.width &&
-                   point.y >= shape.y && point.y <= shape.y + shape.height;
+            // Check if eraser circle intersects with rectangle
+            const rectCenterX = shape.x + shape.width/2;
+            const rectCenterY = shape.y + shape.height/2;
+            const distX = Math.abs(point.x - rectCenterX);
+            const distY = Math.abs(point.y - rectCenterY);
+
+            if (distX > (shape.width/2 + eraserRadius)) return false;
+            if (distY > (shape.height/2 + eraserRadius)) return false;
+
+            if (distX <= (shape.width/2)) return true;
+            if (distY <= (shape.height/2)) return true;
+
+            const dx = distX - shape.width/2;
+            const dy = distY - shape.height/2;
+            return (dx*dx + dy*dy <= eraserRadius*eraserRadius);
+
         case 'circle':
+            // Check if eraser circle intersects with shape circle
             const distance = Math.sqrt(
                 Math.pow(point.x - shape.x, 2) + Math.pow(point.y - shape.y, 2)
             );
-            return distance <= shape.radius;
+            return distance <= (shape.radius + eraserRadius);
+
         case 'text':
-            return point.x >= shape.x && point.x <= shape.x + 100 && // Approximate text width
-                   point.y >= shape.y - 20 && point.y <= shape.y; // Approximate text height
+            // Use a box collision for text with some padding
+            return point.x >= shape.x - eraserRadius && 
+                   point.x <= shape.x + 100 + eraserRadius && // Approximate text width
+                   point.y >= shape.y - 20 - eraserRadius && 
+                   point.y <= shape.y + eraserRadius;
+
         case 'arrow':
-            // Simplified arrow hit detection using bounding box
-            return point.x >= shape.x && point.x <= shape.x + shape.width &&
-                   point.y >= shape.y && point.y <= shape.y + shape.height;
+            // Simplified arrow collision using the bounding box plus eraser radius
+            return point.x >= shape.x - eraserRadius && 
+                   point.x <= shape.x + shape.width + eraserRadius &&
+                   point.y >= shape.y - eraserRadius && 
+                   point.y <= shape.y + shape.height + eraserRadius;
     }
 }
 
