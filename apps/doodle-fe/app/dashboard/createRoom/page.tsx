@@ -20,7 +20,7 @@ export default function CreateRoom() {
 
         try {
             const response = await axios.post('http://localhost:3001/room', 
-                { name: roomName },
+                { slug: roomName.trim() },  // Changed from name to slug
                 {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem('token')}`

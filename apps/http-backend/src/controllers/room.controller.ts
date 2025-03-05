@@ -6,20 +6,21 @@ class RoomController {
     async createRoom(req: Request, res: Response) {
         const parsedData = CreateRoomSchema.safeParse(req.body);
         if (!parsedData.success) {
-            res.status(400).json({ message: "Invalid input data" });
-            return;
+            return res.status(400).json({ 
+                message: "Invalid input data",
+                errors: parsedData.error.errors 
+            });
         }
 
         const userId = req.userId;
         if (!userId) {
-            res.status(400).json({ message: "User ID is required" });
-            return;
+            return res.status(401).json({ message: "User ID is required" });
         }
 
         try {
             const room = await prismaClient.room.create({
                 data: {
-                    slug: parsedData.data.name,
+                    slug: parsedData.data.slug,
                     adminId: userId
                 }
             });
