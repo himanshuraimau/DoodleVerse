@@ -32,7 +32,7 @@ DoodleVerse/
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/DoodleVerse.git
+git clone https://github.com/himanshuraimau/DoodleVerse.git
 cd DoodleVerse
 ```
 
